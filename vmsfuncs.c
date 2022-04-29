@@ -23,7 +23,13 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <stdbool.h>
 
+#define __NEW_STARLET 1         /* enable VMS function prototypes */
+
+#include <starlet.h>
 #include <descrip.h>
 #include <rmsdef.h>
 #include <ssdef.h>
@@ -38,12 +44,15 @@
 #include <psldef.h>
 #include <libdef.h>
 #include <libdtdef.h>
+#include <iosbdef.h>
+#include <lib$routines.h>
+#include <gen64def.h>
 
 #include <fab.h>
 #include <nam.h>
 #include <xab.h>
 
-#define MAX_PATH_LEN 64
+#define MAX_PATH_LEN 256
 
 #define HEX_DIGIT(a) (((a)<10)?((a)+'0'):((a)-10+'A'))
 #define ADD_CHAR(a,b) (a)->value[(a)->len++] = (b)
@@ -92,7 +101,8 @@ struct fabptr {
 
 #define NUM_ACP_CODES ((sizeof(acp_codes)/sizeof(char*))-1)
 static const char *acp_codes[] = {
-   "ILLEGAL", "F11CV1", "F11V2", "MTA", "NET", "REM"
+   "ILLEGAL", "F11V1", "F11V2", "MTA", "NET", "REM", "HBS", "F11V3", "F11V4",
+   "F64", "UCX", "F11V5", "F11V6", "HBVS"
 } ;
 
 #define NUM_JPI_MODES ((sizeof(jpi_modes)/sizeof(char*))-1)
@@ -140,13 +150,13 @@ static char *select_code( const int code, const char *values[], const int max )
 }
 
 static const char *all_privs[] = {
-   "CMKRNL",   "CMEXEC",  "SYSNAM",   "GRPNAM",    "ALLSPOOL", "DETACH",
-   "DIAGNOSE", "LOG_IO",  "GROUP",    "ACNT",      "PRMCEB",   "PRMMBX",
+   "CMKRNL",   "CMEXEC",  "SYSNAM",   "GRPNAM",    "ALLSPOOL", "IMPERSONATE",
+   "DIAGNOSE", "LOG_IO",  "GROUP",    "NOACNT",    "PRMCEB",   "PRMMBX",
    "PSWAPM",   "SETPRI",  "SETPRV",   "TMPMBX",    "WORLD",    "MOUNT",
    "OPER",     "EXQUOTA", "NETMBX",   "VOLPRO",    "PHY_IO",   "BUGCHK",
    "PRMGBL",   "SYSGBL",  "PFNMAP",   "SHMEM",     "SYSPRV",   "BYPASS",
    "SYSLCK",   "SHARE",   "UPGRADE",  "DOWNGRADE", "GRPPRV",   "READALL",
-   "",         "",        "SECURITY", ""
+   "IMPORT",   "AUDIT",   "SECURITY"
 } ;
 
 #define NUM_PRIVS ((sizeof(all_privs)/sizeof(char*)))
@@ -167,7 +177,7 @@ static void vms_error( const tsd_t *TSD, const int err )
       vt->error_descr.dsc$b_class = DSC$K_CLASS_S ;
    }
 
-   rc=sys$getmsg( err, &length, &vt->error_descr, NULL, NULL ) ;
+   rc=sys$getmsg( err, &length, &vt->error_descr, 0, NULL ) ;
    if (rc != SS$_NORMAL)
       exiterror( ERR_SYSTEM_FAILURE , 0 ) ;
 
@@ -189,7 +199,7 @@ static streng *internal_id( const tsd_t *TSD, const short *id )
 
 static int name_to_num( const tsd_t *TSD, const streng *name )
 {
-   int id, rc ;
+   unsigned int id, rc ;
    $DESCRIPTOR( descr, "" ) ;
 
    descr.dsc$w_length = name->len ;
@@ -210,8 +220,9 @@ static streng *num_to_name( const tsd_t *TSD, const int num )
    $DESCRIPTOR( udescr, user ) ;
    $DESCRIPTOR( gdescr, group ) ;
    streng *result ;
-   short length, glength ;
+   unsigned short length, glength ;
    int rc, xnum, context, theid ;
+   bool success = true;
 
    if (num == 0)
       return NULL ;
@@ -221,15 +232,15 @@ static streng *num_to_name( const tsd_t *TSD, const int num )
       xnum = num | 0x0000ffff ;
       rc = sys$idtoasc( xnum, &glength, &gdescr, NULL, NULL, NULL) ;
       if (rc == SS$_NOSUCHID)
-         glength = -1 ;
+         success = false;
       else if (rc != SS$_NORMAL)
       {
          vms_error( TSD, rc ) ;
-         glength = -1 ;
+         success = false;
       }
    }
    else
-      glength = -1 ;
+      success = false;
 
    rc = sys$idtoasc( num, &length, &udescr, NULL, NULL, NULL ) ;
 
@@ -241,7 +252,7 @@ static streng *num_to_name( const tsd_t *TSD, const int num )
       length = 0 ;
    }
 
-   if (glength > -1)
+   if (success)
    {
       result = Str_makeTSD( glength + 1 + length ) ;
       Str_ncatstrTSD( result, group, glength ) ;
@@ -282,7 +293,7 @@ static streng *get_prot( const tsd_t *TSD, int prot )
    return result ;
 }
 
-static streng *get_uic( const tsd_t *TSD, const union uicdef *uic )
+static streng *get_uic( const tsd_t *TSD, const UICDEF *uic )
 {
    streng *name ;
    streng *result ;
@@ -455,9 +466,10 @@ static streng *format_result( const tsd_t *TSD, const int type, const char *buff
 
       case TYP_PRIV:
       {
+         const unsigned __int64 privs = *((const unsigned __int64 *) buffer);
          result = Str_makeTSD(256) ;
          for (i=0; i<NUM_PRIVS; i++)
-            if (buffer[i/8] & (1<<(i%8)))
+            if (privs & (1<<i))
             {
                Str_catstrTSD( result, all_privs[i] ) ;
                ADD_CHAR( result, ',' ) ;
@@ -484,7 +496,7 @@ static streng *format_result( const tsd_t *TSD, const int type, const char *buff
 
       case TYP_UIC:
       {
-         result = get_uic( TSD, ( union uicdef *)buffer ) ;
+         result = get_uic( TSD, ( const UICDEF *)buffer ) ;
          break ;
       }
 
@@ -554,7 +566,7 @@ static unsigned int read_pid( const streng *hexpid )
 streng *vms_f_directory( tsd_t *TSD, cparamboxptr parms )
 {
    char buffer[ MAX_PATH_LEN ] ;
-   short length ;
+   unsigned short length ;
    int rc ;
    streng *result ;
    $DESCRIPTOR( dir, buffer ) ;
@@ -779,14 +791,12 @@ static struct dvi_items_type *item_info(
 
 streng *vms_f_getdvi( tsd_t *TSD, cparamboxptr parms )
 {
-   char *buffer="", buffer1[64], buffer2[64] ;
+   char buffer1[64], buffer2[64] ;
    int spooled, slength=4, rc, itemcode, length ;
    short length1, length2 ;
    struct dvi_items_type *ptr ;
    int item[12], type ;
    struct dsc$descriptor_s name ;
-   struct dsc$descriptor_s dir = {
-       sizeof(buffer)-1, DSC$K_DTYPE_T, DSC$K_CLASS_S, buffer } ;
 
    checkparam( parms, 2, 2, "VMS_F_GETDVI" ) ;
 
@@ -811,7 +821,7 @@ streng *vms_f_getdvi( tsd_t *TSD, cparamboxptr parms )
    item[9] = item[10] = item[11] = 0 ;
 
 
-   rc = sys$getdviw( NULL, NULL, &name, &item, NULL, NULL, NULL, NULL ) ;
+   rc = sys$getdviw( 0, 0, &name, &item, NULL, NULL, 0, NULL ) ;
 
    if (ptr->type == TYP_SPLD)
    {
@@ -821,7 +831,7 @@ streng *vms_f_getdvi( tsd_t *TSD, cparamboxptr parms )
    else
       type = ptr->type ;
 
-   buffer = (spooled) ? buffer2 : buffer1 ;
+   char *buffer = (spooled) ? buffer2 : buffer1 ;
    length = (spooled) ? length2 : length1 ;
 
    if (type == TYP_EXST)
@@ -926,7 +936,7 @@ streng *vms_f_getjpi( tsd_t *TSD, cparamboxptr parms )
    char buffer[64] ;
    int item[6] ;
    short length=0 ;
-   int rc, pid, *pidaddr ;
+   unsigned int rc, pid, *pidaddr ;
    struct dvi_items_type *ptr ;
    struct dsc$descriptor_s dir = {
        sizeof(buffer)-1, DSC$K_DTYPE_T, DSC$K_CLASS_S, buffer } ;
@@ -950,7 +960,7 @@ streng *vms_f_getjpi( tsd_t *TSD, cparamboxptr parms )
    item[2] = (int)&length ;
    item[3] = item[4] = item[5] = 0 ;
 
-   rc = sys$getjpiw( NULL, pidaddr, NULL, &item, NULL, NULL, NULL ) ;
+   rc = sys$getjpiw( 0, pidaddr, NULL, &item, NULL, NULL, 0 ) ;
 
    if (rc != SS$_NORMAL)
    {
@@ -1403,7 +1413,7 @@ streng *vms_f_getqui( tsd_t *TSD, cparamboxptr parms )
    int items[21], cnt=0, *vector ;
    int search_flags=0, search_length=4, search_number[10], search_nlength ;
    cparamboxptr tmp ;
-   int ioblk[2] ;
+   struct _iosb ioblk ;
    streng *item, *objid ;
    struct dvi_items_type *ptr, *item_ptr ;
    $DESCRIPTOR( objdescr, "" ) ;
@@ -1493,12 +1503,13 @@ streng *vms_f_getqui( tsd_t *TSD, cparamboxptr parms )
    items[cnt++] = 0 ;
 
    func = ptr->addr ;
-   ioblk[0] = ioblk[1] = 0 ;
+   memset(&ioblk, 0, sizeof(struct _iosb));
 
-   rc = sys$getquiw( NULL, func, NULL, &items, ioblk, NULL, NULL ) ;
+   rc = sys$getquiw( 0, func, NULL, &items, &ioblk, NULL, 0 ) ;
 
-   if ((rc==SS$_NORMAL) && ((ioblk[0]==JBC$_NOSUCHJOB) ||
-          (ioblk[0]==JBC$_NOMOREQUE) || (ioblk[0]==JBC$_NOQUECTX)))
+   if ((rc==SS$_NORMAL) && ((ioblk.iosb$w_status==JBC$_NOSUCHJOB) ||
+          (ioblk.iosb$w_status==JBC$_NOMOREQUE) ||
+          (ioblk.iosb$w_status==JBC$_NOQUECTX)))
       return nullstringptr() ;
 
    if (rc != SS$_NORMAL)
@@ -1510,9 +1521,9 @@ streng *vms_f_getqui( tsd_t *TSD, cparamboxptr parms )
    if (!item_ptr)
       return nullstringptr() ;
 
-   if (ioblk[0] != JBC$_NORMAL)
+   if (ioblk.iosb$w_status != JBC$_NORMAL)
    {
-      vms_error( TSD, ioblk[0] ) ;
+      vms_error( TSD, ioblk.iosb$w_status ) ;
       return nullstringptr() ;
    }
 
@@ -1602,7 +1613,7 @@ streng *vms_f_getsyi( tsd_t *TSD, cparamboxptr parms )
       name.dsc$a_pointer = parms->value->value ;
    }
 
-   rc = sys$getsyiw( NULL, NULL, namep, &item[0], NULL, NULL, NULL ) ;
+   rc = sys$getsyiw( 0, NULL, namep, &item[0], NULL, NULL, 0 ) ;
 
    if (rc != SS$_NORMAL)
    {
@@ -1647,12 +1658,13 @@ streng *vms_f_message( tsd_t *TSD, cparamboxptr parms )
 {
    char buffer[256] ;
    $DESCRIPTOR( name, buffer ) ;
-   int length, rc, errmsg ;
+   unsigned int rc, errmsg ;
+   unsigned short length ;
 
    checkparam( parms, 1, 1, "VMS_F_MESSAGE" ) ;
    errmsg = atopos( TSD, parms->value, "VMS_F_MESSAGE", 1 ) ;
 
-   rc = sys$getmsg( errmsg, &length, &name, NULL, NULL ) ;
+   rc = sys$getmsg( errmsg, &length, &name, 0, NULL ) ;
 
    if ((rc != SS$_NORMAL) && (rc != SS$_MSGNOTFND))
       vms_error( TSD, rc ) ;
@@ -1680,7 +1692,7 @@ streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
 {
    short length ;
    int *pidp=NULL, rc, buffer ;
-   int pid;
+   unsigned int pid;
    unsigned int items[6] ;
    const streng *Pid ;
    vmf_tsd_t *vt;
@@ -1706,10 +1718,10 @@ streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
       FreeTSD( str ) ;
    }
    else
-      pid = -1 ;
+      pid = (unsigned int)(-1) ;
 
    do {
-      rc = sys$getjpiw( NULL, &pid, NULL, &items, NULL, NULL, NULL ) ;
+      rc = sys$getjpiw( 0, &pid, NULL, &items, NULL, NULL, 0 ) ;
       }
    while (rc == SS$_NOPRIV) ;
 
@@ -1733,14 +1745,14 @@ streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
 
 #define MAX_PRIVS (sizeof(all_privs)/sizeof(char*))
 
-static streng *map_privs( const tsd_t *TSD, const int *vector )
+static streng *map_privs( const tsd_t *TSD, const GENERIC_64 privs )
 {
    int i ;
    char *ptr, buffer[512] ;
 
    *(ptr=buffer) = 0x00 ;
    for (i=0; i<MAX_PRIVS; i++)
-      if ((vector[i/32] >> (i%32)) & 0x01)
+      if ((privs.gen64$q_quadword >> i) & 0x01)
       {
          strcat( ptr, all_privs[i] ) ;
          ptr += strlen(all_privs[i]) ;
@@ -1753,7 +1765,7 @@ static streng *map_privs( const tsd_t *TSD, const int *vector )
    return Str_ncatstrTSD( Str_makeTSD(ptr-buffer), buffer, (ptr-buffer)) ;
 }
 
-static int extract_privs( int *vector, const streng *privs )
+static int extract_privs( GENERIC_64 *vector, const streng *privs )
 {
    int max_priv, negate, i ;
    const char *ptr, *eptr, *tptr, *lptr ;
@@ -1775,9 +1787,9 @@ static int extract_privs( int *vector, const streng *privs )
                                 (all_privs[i][tptr-ptr-negate] == 0x00))
          {
             if (negate)
-               vector[2+i/32] |= (1 << (i%32)) ;
+               vector[1].gen64$q_quadword |= (1 << i) ;
             else
-               vector[i/32] |= (1 << (i%32)) ;
+               vector[0].gen64$q_quadword |= (1 << i) ;
             break ;
          }
 
@@ -1790,7 +1802,7 @@ static int extract_privs( int *vector, const streng *privs )
 
 streng *vms_f_privilege( tsd_t *TSD, cparamboxptr parms )
 {
-   int privbits[4], privs[2] ;
+   GENERIC_64 privbits[2], privs ;
    int rc ;
    char *ptr, *eptr, *tptr ;
 
@@ -1802,8 +1814,8 @@ streng *vms_f_privilege( tsd_t *TSD, cparamboxptr parms )
       vms_error( TSD, rc ) ;
 
    return Str_creTSD(
-            (((privbits[0] & ~privs[0]) | ( privbits[2] & privs[0] )) ||
-             ((privbits[1] & ~privs[1]) | ( privbits[3] & privs[1] ))) ?
+            ((privbits[0].gen64$q_quadword & ~privs.gen64$q_quadword) |
+             ( privbits[1].gen64$q_quadword & privs.gen64$q_quadword )) ?
                      "FALSE" : "TRUE" ) ;
 }
 
@@ -1855,7 +1867,7 @@ streng *vms_f_time( tsd_t *TSD, cparamboxptr parms )
 
 streng *vms_f_setprv( tsd_t *TSD, cparamboxptr parms )
 {
-   int privbits[4], old[2] ;
+   GENERIC_64 privbits[2], old ;
    int rc ;
 
    checkparam( parms, 1, 1, "VMS_F_SETPRV" ) ;
@@ -1865,7 +1877,7 @@ streng *vms_f_setprv( tsd_t *TSD, cparamboxptr parms )
    if (rc != SS$_NORMAL)
       vms_error( TSD, rc ) ;
 
-   rc = sys$setprv( 1, &privbits[2], 0, NULL ) ;
+   rc = sys$setprv( 1, &privbits[1], 0, NULL ) ;
    if (rc != SS$_NORMAL)
       vms_error( TSD, rc ) ;
 
@@ -1877,7 +1889,7 @@ streng *vms_f_user( tsd_t *TSD, cparamboxptr parms )
 {
    int item[6], rc ;
    short length ;
-   union uicdef uic ;
+   UICDEF uic ;
 
    checkparam( parms, 0, 0, "VMS_F_USER" ) ;
 
@@ -1886,7 +1898,7 @@ streng *vms_f_user( tsd_t *TSD, cparamboxptr parms )
    item[2] = (int)&length ;
    item[3] = item[4] = item[5] = 0 ;
 
-   rc = sys$getjpi( NULL, NULL, NULL, item, NULL, NULL, NULL ) ;
+   rc = sys$getjpi( 0, NULL, NULL, item, NULL, NULL, 0 ) ;
 
    if ((rc != SS$_NORMAL) || (length != 4))
    {
@@ -1957,7 +1969,7 @@ streng *vms_f_trnlnm( tsd_t *TSD, cparamboxptr parms )
    $DESCRIPTOR( lognam, "" ) ;
    $DESCRIPTOR( tabnam, "LNM$DCL_LOGICAL" ) ;
    short length ;
-   int attr=0, item=LNM$_STRING, rc, cnt=0, index ;
+   unsigned int attr=0, item=LNM$_STRING, rc, cnt=0 ;
    unsigned char mode ;
    int attribs, lattribs ;
    struct dvi_items_type *item_ptr ;
@@ -1980,7 +1992,7 @@ streng *vms_f_trnlnm( tsd_t *TSD, cparamboxptr parms )
    if (ptr) ptr=ptr->next ;
    if (ptr && ptr->value)
    {
-      index = atozpos( TSD, ptr->value, "VMS_F_TRNLNM", 0 ) ;
+      int index = atozpos( TSD, ptr->value, "VMS_F_TRNLNM", 0 ) ;
       if (index<0 || index>127)
          exiterror( ERR_INCORRECT_CALL , 0 ) ;
 
@@ -2524,7 +2536,7 @@ streng *vms_f_file_attributes( tsd_t *TSD, cparamboxptr parms )
          }
          break ;
       case FIL_RVN:  res = int_to_streng( TSD, xabdat.xab$w_rvn ); break ;
-      case FIL_UIC:  res = get_uic( TSD, ( union uicdef *)&(xabpro.xab$l_uic) ); break ;
+      case FIL_UIC:  res = get_uic( TSD, ( const UICDEF *)&(xabpro.xab$l_uic) ); break ;
       case FIL_WCK:  res = boolean( TSD, fab.fab$l_fop & FAB$M_WCK ); break ;
       default:
          exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" )  ;
@@ -2652,7 +2664,7 @@ static streng *convert_bin( tsd_t *TSD, cparamboxptr parms, const int issigned, 
          }
       }
 
-   result = str_digitize( TSD, temp, 0, 1 ) ;
+   result = str_digitize( TSD, temp, 0, 1, bif, 0 ) ;
    FreeTSD( temp ) ;
    return result ;
 }
@@ -2682,7 +2694,7 @@ enum funcs { year, month, day, hour, minute, second, hundredth,
                weekday, time_part, date_part, datetime } ;
 
 
-static char *read_abs_time( char *ptr, char *end, short *times )
+static char *read_abs_time( char *ptr, char *end, unsigned short *times )
 {
    int cnt, increment, rc ;
    char *tmp ;
@@ -2916,7 +2928,7 @@ static char *read_abs_time( char *ptr, char *end, short *times )
 }
 
 
-static char *read_delta_time( char *ptr, char *end, short *times )
+static char *read_delta_time( char *ptr, char *end, unsigned short *times )
 {
    int cnt, increment ;
    char *tmp ;
@@ -3052,7 +3064,9 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
 {
    streng *item=NULL, *input=NULL, *output=NULL, *result ;
    int rc, res, cnt, abs=0 ;
-   short times[7], timearray[7], btime[4] ;
+   unsigned short times[7] ;
+   unsigned short timearray[7] ;
+   GENERIC_64 btime ;
    char *cptr, *cend, *ctmp, *cptr2 ;
    $DESCRIPTOR( timbuf, "" ) ;
    enum funcs func ;
@@ -3122,10 +3136,11 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
 
    if (input)
    {
-      short atime[4], dtime[4], xtime[4], ttimes[7] = {0,0,0,0,0,0,1} ;
-      int rc2, increment ;
+      unsigned __int64 atime, dtime, xtime ;
+      unsigned short ttimes[7] = {0,0,0,0,0,0,1} ;
+      unsigned int rc2, increment ;
 
-      lib$cvt_vectim( ttimes, xtime ) ;
+      lib$cvt_vectim( ttimes, &xtime ) ;
       cptr = input->value ;
       cend = cptr + input->len ;
 
@@ -3141,19 +3156,16 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
             if ((increment=(times[hundredth]==100)))
                times[hundredth] -= 1 ; ;
 
-            rc = lib$cvt_vectim( times, btime ) ;
+            rc = lib$cvt_vectim( times, &btime.gen64$q_quadword ) ;
             if (increment)
             {
-               lib$add_times( xtime, btime, dtime ) ;
-               btime[0] = dtime[0] ;
-               btime[1] = dtime[1] ;
-               btime[2] = dtime[2] ;
-               btime[3] = dtime[3] ;
+               lib$add_times( &xtime, &btime.gen64$q_quadword, &dtime ) ;
+               btime.gen64$q_quadword = dtime ;
             }
          }
          else
          {
-            rc = sys$gettim( btime ) ;
+            rc = sys$gettim( &btime ) ;
          }
 
          if (cptr<cend && (*cptr=='-' || *cptr=='+'))
@@ -3163,25 +3175,19 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
             if ((increment=(times[6]==100)))
                times[6] -= 1 ;
 
-            rc2 = lib$cvt_vectim( times, dtime ) ;
+            rc2 = lib$cvt_vectim( times, &dtime ) ;
             if (increment)
             {
-               lib$add_times( dtime, xtime, atime ) ;
-               dtime[0] = atime[0] ;
-               dtime[1] = atime[1] ;
-               dtime[2] = atime[2] ;
-               dtime[3] = atime[3] ;
+               lib$add_times( &dtime, &xtime, &atime ) ;
+               dtime = atime ;
             }
 
             if (oper=='+')
-               rc = lib$add_times( btime, dtime, atime ) ;
+               rc = lib$add_times( &btime.gen64$q_quadword, &dtime, &atime ) ;
             else
-               rc = lib$sub_times( btime, dtime, atime ) ;
+               rc = lib$sub_times( &btime.gen64$q_quadword, &dtime, &atime ) ;
 
-            btime[0] = atime[0] ;
-            btime[1] = atime[1] ;
-            btime[2] = atime[2] ;
-            btime[3] = atime[3] ;
+            btime.gen64$q_quadword = atime ;
          }
       }
       else
@@ -3190,14 +3196,11 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
          if ((increment=(times[6]==100)))
             times[6] -= 1 ;
 
-         rc = lib$cvt_vectim( times, &btime ) ;
+         rc = lib$cvt_vectim( times, &btime.gen64$q_quadword ) ;
          if (increment)
          {
-            lib$add_times( xtime, btime, atime ) ;
-            btime[0] = atime[0] ;
-            btime[1] = atime[1] ;
-            btime[2] = atime[2] ;
-            btime[3] = atime[3] ;
+            lib$add_times( &xtime, &btime.gen64$q_quadword, &atime ) ;
+            btime.gen64$q_quadword = atime ;
          }
       }
    }
@@ -3289,7 +3292,7 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
 
       case weekday:
       {
-         int op=LIB$K_DAY_OF_WEEK, res ;
+         unsigned int op=LIB$K_DAY_OF_WEEK, res ;
          rc = lib$cvt_from_internal_time( &op, &res, &btime ) ;
          if (rc!=LIB$_NORMAL)
          {
@@ -3318,7 +3321,7 @@ streng *vms_f_fao( tsd_t *TSD, cparamboxptr parms )
    streng *result ;
    $DESCRIPTOR( ctrl, "" ) ;
    $DESCRIPTOR( outbuf, buffer ) ;
-   short outlen ;
+   unsigned short outlen ;
 
    if (parms->value==NULL)
       exiterror( ERR_INCORRECT_CALL , 0 ) ;

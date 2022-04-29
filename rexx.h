@@ -170,6 +170,8 @@
 #if defined(__WINS__) || defined(__EPOC32__)
 # include "epoc32.h"
 # define REXX_PATH_MAX MAXPATHLEN
+#elif defined(VMS)
+# define REXX_PATH_MAX 256      /* limits.h may not define PATH_MAX     */
 #else
 # ifndef REXX_PATH_MAX
 #  ifndef PATH_MAX
@@ -277,6 +279,8 @@
 # include <getopt.h>
 # define my_getopt_long getopt_long
 # define my_getopt_option option
+# define my_optarg optarg
+# define my_optind optind
 #endif
 
 /* For some mysterious reason, this macro is very difficult for some vendors */

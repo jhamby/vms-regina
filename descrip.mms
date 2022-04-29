@@ -11,15 +11,25 @@
         @ write sys$output f$fao("!/==!AS !%D==", -
                 "Processing DESCRIP.MMS (Regina) concludes at", 0)
 !
+.INCLUDE regina.ver
+!
 .IFDEF DEBUGGING
 CC=CC/DECC/DEBUG
-CFLAGS=/NOOPTIMIZE/STANDARD=RELAXED_ANSI89/WARNINGS=DISABLE=(IMPLICITFUNC,cvtdiftypes) -
-        /INCLUDE_DIRECTORY=[]/NAMES=SHORTENED/DEFINE=(VMS,HAVE_DIV,HAVE_ARPA_INET_H)/NOLIST/OBJECT=$(MMS$TARGET_NAME).OBJ
+CFLAGS=/NOOPTIMIZE/STANDARD=RELAXED/WARNINGS=DISABLE=(IMPLICITFUNC,cvtdiftypes) -
+        /INCLUDE_DIRECTORY=[]/NAMES=SHORTENED/NOLIST/OBJECT=$(MMS$TARGET_NAME).OBJ -
+        /DEFINE=(VMS,HAVE_DIV,HAVE_ARPA_INET_H,_USE_STD_STAT,SOCKADDR_LEN,-
+                 REGINA_VERSION_DATE=""$(VER_DATE)"",REGINA_VERSION_MAJOR="""$(VER_MAJOR)""",-
+                 REGINA_VERSION_MINOR="""$(VER_MINOR)""",REGINA_VERSION_RELEASE="""$(VER_RELEASE)""",-
+                 REGINA_VERSION_SUPP=""$(VER_SUPP)"",REGINA_BITS=32)
 LINK=LINK/DEBUG
 .ELSE
 CC=CC/DECC/NODEBUG
-CFLAGS=/OPTIMIZE/STANDARD=RELAXED_ANSI89/WARNINGS=DISABLE=(IMPLICITFUNC) -
-        /INCLUDE_DIRECTORY=[]/NAMES=SHORTENED/DEFINE=(VMS,HAVE_DIV,HAVE_ARPA_INET_H)/OBJECT=$(MMS$TARGET_NAME).OBJ
+CFLAGS=/OPT=(TUNE=EV67)/ARCH=EV56/FLOAT=IEEE/IEEE=DENORM/STANDARD=RELAXED -
+        /INCLUDE_DIRECTORY=[]/NAMES=SHORTENED/OBJECT=$(MMS$TARGET_NAME).OBJ -
+        /DEFINE=(VMS,HAVE_DIV,HAVE_ARPA_INET_H,_USE_STD_STAT,SOCKADDR_LEN,-
+                 REGINA_VERSION_DATE=""$(VER_DATE)"",REGINA_VERSION_MAJOR="""$(VER_MAJOR)""",-
+                 REGINA_VERSION_MINOR="""$(VER_MINOR)""",REGINA_VERSION_RELEASE="""$(VER_RELEASE)""",-
+                 REGINA_VERSION_SUPP=""$(VER_SUPP)"",REGINA_BITS=32)
 LINK=LINK/NODEBUG
 .ENDIF
 !
@@ -34,9 +44,9 @@ LINKFLAGS=/MAP
 !
 !OBJ1=builtin.obj,cmath.obj,cmsfuncs.obj,convert.obj,
 OBJ1=builtin.obj,client.obj,cmath.obj,cmsfuncs.obj,convert.obj,
-OBJ2=dbgfuncs.obj,debug.obj,doscmd.obj,envir.obj,error.obj,expr.obj,
+OBJ2=dbgfuncs.obj,debug.obj,envir.obj,error.obj,expr.obj,
 !OBJ3=extlib.obj,files.obj,funcs.obj,
-OBJ3=files.obj,funcs.obj,
+OBJ3=files.obj,funcs.obj,mygetopt.obj,os_other.obj,
 OBJ4=mt_notmt.obj,rexxbif.obj,instore.obj,extstack.obj,os2funcs.obj,
 OBJ5=interp.obj,interprt.obj,lexsrc.obj,library.obj,macros.obj,memory.obj,
 OBJ6=misc.obj,options.obj,parsing.obj,rexxext.obj,rexxsaa.obj,shell.obj,
@@ -122,11 +132,6 @@ debug.obj :     debug.c, rexx.h
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)
         @ write sys$output "Done (compiling)."
-doscmd.obj :    doscmd.c, rexx.h
-        @ write sys$output ""
-        @ write sys$output "Compiling $(MMS$SOURCE) "
-        $(CC) $(CFLAGS) $(MMS$SOURCE)
-        @ write sys$output "Done (compiling)."
 envir.obj :     envir.c, rexx.h
         @ write sys$output ""
         @ write sys$output "Compiling $(MMS$SOURCE) "
@@ -207,7 +212,12 @@ misc.obj :      misc.c, rexx.h
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)
         @ write sys$output "Done (compiling)."
-mt_notmt.obj :  mt_notmt.c, rexx.h mt.h
+mt_notmt.obj :  mt_notmt.c, rexx.h, mt.h
+        @ write sys$output ""
+        @ write sys$output "Compiling $(MMS$SOURCE) "
+        $(CC) $(CFLAGS) $(MMS$SOURCE)
+        @ write sys$output "Done (compiling)."
+mygetopt.obj :  mygetopt.c, rexx.h, mygetopt.h
         @ write sys$output ""
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)
@@ -218,6 +228,11 @@ options.obj :   options.c, rexx.h
         $(CC) $(CFLAGS) $(MMS$SOURCE)
         @ write sys$output "Done (compiling)."
 os2funcs.obj :   os2funcs.c, rexx.h
+        @ write sys$output ""
+        @ write sys$output "Compiling $(MMS$SOURCE) "
+        $(CC) $(CFLAGS) $(MMS$SOURCE)
+        @ write sys$output "Done (compiling)."
+os_other.obj :   os_other.c, rexx.h
         @ write sys$output ""
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)
@@ -242,10 +257,10 @@ rexx.obj :      rexx.c, rexx.h
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)
         @ write sys$output "Done (compiling)."
-drexx.obj :     rexx.c, rexx.h
+drexx.obj :     drexx.c, rexx.h
         @ write sys$output ""
         @ write sys$output "Compiling $(MMS$SOURCE) "
-        $(CC) $(CFLAGS) /DEFINE=RXLIB $(MMS$SOURCE)
+        $(CC) $(CFLAGS) $(MMS$SOURCE)
         @ write sys$output "Done (compiling)."
 rexxbif.obj :   rexxbif.c, rexx.h
         @ write sys$output ""

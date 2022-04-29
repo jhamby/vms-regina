@@ -97,6 +97,7 @@
 #include <time.h>
 #if defined(VMS)
 # include <stat.h>
+# include <unistd.h>
 #elif defined(OS2)
 # include <sys/stat.h>
 # ifdef HAVE_UNISTD_H
@@ -2762,7 +2763,7 @@ static rx_64 positionfile_SEEK_END( tsd_t *TSD, const char *bif, int argno, file
     * until the start of file, or we have the specified number of lines.
     */
    rx_64 here, next, save_pos, i, ret, this_lineno, num_lines;
-   size_t bret;
+   ssize_t bret;
    char buf[512];
    int found = 0;
 
@@ -3351,7 +3352,7 @@ static rx_64 positioncharfile( tsd_t *TSD, const char *bif, int argno, fileboxpt
  */
 static streng *readbytes( tsd_t *TSD, fileboxptr fileptr, size_t length, int noerrors )
 {
-   size_t didread=0 ;
+   ssize_t didread=0 ;
    streng *retvalue=NULL ;
 
    /*
@@ -6493,7 +6494,7 @@ streng *ConfigStreamQualified( tsd_t *TSD, const streng *name )
  * a path element is missing.
  * The return value is 0 on success, -1 in case of a severe error.
  */
-int my_fullpath( tsd_t *TSD, char *dst, const char *src )
+int my_fullpath( const tsd_t *TSD, char *dst, const char *src )
 {
    char *copy=NULL;
    int rc = 0, len;
@@ -6547,7 +6548,7 @@ int my_fullpath( tsd_t *TSD, char *dst, const char *src )
 }
 #elif defined(HAVE__TRUENAME)
 
-int my_fullpath( tsd_t *TSD, char *dst, const char *src )
+int my_fullpath( const tsd_t *TSD, char *dst, const char *src )
 {
    _truename( src, dst );
 
@@ -6555,7 +6556,7 @@ int my_fullpath( tsd_t *TSD, char *dst, const char *src )
 }
 #elif defined(HAVE_REALPATH)
 
-int my_fullpath( tsd_t *TSD, char *dst, const char *src )
+int my_fullpath( const tsd_t *TSD, char *dst, const char *src )
 {
    /* hack for leading ~/ */
    int len = strlen( src );
@@ -6588,14 +6589,17 @@ int my_fullpath( tsd_t *TSD, char *dst, const char *src )
    return 0;
 }
 #elif defined(VMS)
+#  define __NEW_STARLET 1       /* enable function prototypes */
 #  include <ssdef.h>
 #  include <rmsdef.h>
 #  include <descrip.h>
+#  include <lib$routines.h>
+#  include <str$routines.h>
 
-int my_fullpath( tsd_t *TSD, char *dst, const char *src )
+int my_fullpath( const tsd_t *TSD, char *dst, const char *src )
 {
    char *s;
-   int status, context = 0;
+   unsigned int status, context = 0;
    struct dsc$descriptor_d result_dx = {0, DSC$K_DTYPE_T, DSC$K_CLASS_D, 0};
    struct dsc$descriptor_d finddesc_dx = {0, DSC$K_DTYPE_T, DSC$K_CLASS_D, 0};
 
@@ -6615,7 +6619,7 @@ int my_fullpath( tsd_t *TSD, char *dst, const char *src )
 }
 #else /* neither _FULLPATH, _TRUENAME, REALNAME, VMS */
 
-int my_fullpath( tsd_t *TSD, char *dst, const char *src )
+int my_fullpath( const tsd_t *TSD, char *dst, const char *src )
 {
    char tmp[REXX_PATH_MAX+1];
    char curr_path[REXX_PATH_MAX+1];

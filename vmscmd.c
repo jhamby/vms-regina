@@ -16,6 +16,9 @@
  *  License along with this library; if not, write to the Free
  *  Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
+#define __NEW_STARLET 1         /* enable VMS function prototypes */
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -28,6 +31,8 @@
 #include <iodef.h>
 #include <jpidef.h>
 #include <rmsdef.h>
+#include <starlet.h>
+#include <lib$routines.h>
 
 #include "rexx.h"
 #include "strengs.h"
@@ -51,7 +56,7 @@ struct mbox_status {
 typedef struct { /* vms_tsd: static variables of this module (thread-safe) */
    volatile int       ichan ;
    volatile int       ochan ;
-   volatile int       pid ;
+   unsigned int       pid ;
    volatile int       oflag ;
    volatile int       comp_stat ;
    int                dead ;

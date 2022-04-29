@@ -160,7 +160,7 @@ const char *argv0 = NULL;
  * This enables multiple threads to run within the one interpreter instance.
  * Set by OPTIONS SINGLE_INTERPRETER
  */
-const tsd_t *__regina_global_TSD = NULL;
+tsd_t *__regina_global_TSD = NULL;
 
 static void usage( char * );
 
@@ -364,15 +364,15 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
          case 'i':
             starttrace( TSD );
             set_trace_char( TSD, '?' );
-            if ( optarg )
+            if ( my_optarg )
             {
-               if ( strlen( optarg ) > 1 )
+               if ( strlen( my_optarg ) > 1 )
                {
                   usage( argv[0] );
                   fprintf( stdout, "\nThe passed switch `-t' allows just one additional character, Regina exits.\n" );
                   exit( 1 );
                }
-               set_trace_char( TSD, *optarg );
+               set_trace_char( TSD, *my_optarg );
             }
             else
                set_trace_char( TSD, 'A' );
@@ -394,14 +394,14 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
             break;
 
          case 'v':
-            if ( optarg )
+            if ( my_optarg )
             {
-               if ( strlen( optarg ) > 1 )
+               if ( strlen( my_optarg ) > 1 )
                {
                   fprintf( stdout, "\nThe passed switch `-v' allows just one additional character, Regina exits.\n" );
                   exit( 1 );
                }
-               switch( *optarg )
+               switch( *my_optarg )
                {
 #if defined(HAVE_REGINA_ADDON_DIR)
                   case 'a':
@@ -444,15 +444,15 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
             break;
 
          case 't':
-            if ( optarg )
+            if ( my_optarg )
             {
-               if ( strlen( optarg ) > 1 )
+               if ( strlen( my_optarg ) > 1 )
                {
                   usage( argv[0] );
                   fprintf( stdout, "\nThe passed switch `-t' allows just one additional character, Regina exits.\n" );
                   exit( 1 );
                }
-               queue_trace_char( TSD, *optarg );
+               queue_trace_char( TSD, *my_optarg );
             }
             else
                queue_trace_char( TSD, 'A' );
@@ -461,9 +461,9 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
 
          case 'd':
          case 'D':
-            if ( optarg )
+            if ( my_optarg )
             {
-               if ( *optarg == 'm' )
+               if ( *my_optarg == 'm' )
                   TSD->listleakedmemory = 1;
             }
             break;
@@ -494,12 +494,12 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
 
          case 'l': /* set locale information, accept empty string */
             *locale_set = 1;
-            set_locale_info( optarg );
+            set_locale_info( my_optarg );
             break;
 
          case 'o': /* command-line OPTIONS */
          {
-            streng *opts = Str_creTSD( optarg );
+            streng *opts = Str_creTSD( my_optarg );
             do_options( TSD, TSD->currlevel, opts, 0 );
             break;
          }
@@ -515,7 +515,7 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
             exit( 1 );
       }
    }
-   return optind;
+   return my_optind;
 }
 
 /*
@@ -1066,12 +1066,12 @@ sysinfobox *creat_sysinfo( const tsd_t *TSD, streng *envir )
  * The following two functions are used to set and retrieve the value of
  * the global TSD
  */
-void setGlobalTSD( const tsd_t *TSD)
+void setGlobalTSD( tsd_t *TSD)
 {
    __regina_global_TSD = TSD;
 }
 
-const tsd_t *getGlobalTSD( void )
+tsd_t *getGlobalTSD( void )
 {
    return __regina_global_TSD;
 }

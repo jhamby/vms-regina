@@ -358,7 +358,7 @@ int main( int argc, char *argv[])
             break;
          case 't': /* input from command line */
             fromtext = 1;
-            buff = strdup( optarg );
+            buff = strdup( my_optarg );
             break;
          case 'v':
             fprintf( stderr, "%s: %s (%d bit)\n", argv0, PARSE_VERSION_STRING, REGINA_BITS );

@@ -86,7 +86,7 @@
 #if !defined(HAVE__SPLITPATH2) && !defined(HAVE__SPLITPATH) && !defined(__EMX__) && !defined(DJGPP)
    int my_splitpath2( const char *in, char *out, char **drive, char **dir, char **name, char **ext ) ;
 #endif
-   int my_fullpath( tsd_t *TSD, char *dst, const char *src );
+   int my_fullpath( const tsd_t *TSD, char *dst, const char *src );
    int my_fullpathstreng( const tsd_t *TSD, char *dst, const streng *src );
    streng *arexx_exists( tsd_t *TSD, cparamboxptr parms ) ;
 
@@ -440,8 +440,8 @@ extern "C" {
    nodeptr treadit( cnodeptr ) ;
    void setup_system( tsd_t *TSD, int isclient );
    sysinfobox *creat_sysinfo( const tsd_t *TSD, streng *envir );
-   void setGlobalTSD( const tsd_t *TSD);
-   const tsd_t *getGlobalTSD( void );
+   void setGlobalTSD( tsd_t *TSD);
+   tsd_t *getGlobalTSD( void );
 
 
 /*
@@ -552,7 +552,7 @@ extern "C" {
 /*
  * Routines in options.c
  */
-   void do_options( const tsd_t *TSD, proclevel pl, streng *options, int ) ;
+   void do_options( tsd_t *TSD, proclevel pl, streng *options, int ) ;
    int get_options_flag( cproclevel, int ) ;
    void set_options_flag( proclevel, int, int ) ;
 

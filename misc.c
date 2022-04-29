@@ -438,7 +438,9 @@ void getsecs( time_t *secs, time_t *usecs )
    ftime(&timebuffer);
    *secs = timebuffer.time;
    *usecs = timebuffer.millitm * 1000;
+#if !defined(VMS)
    assert( *secs>=0 && *usecs>=0 ) ;
+#endif
 #else
    *secs = time(NULL) ;
    *usecs = 0 ;
