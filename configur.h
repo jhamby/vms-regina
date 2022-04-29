@@ -836,26 +836,6 @@
 /*#define HAVE_FTRUNCATE*/    /* handled in makefile - TBD in autoconf */
 
 
-
-#ifdef VMS
-# ifdef HAVE_GETTIMEOFDAY
-#  undef HAVE_GETTIMEOFDAY
-# endif
-# ifdef HAVE_PUTENV
-#  undef HAVE_PUTENV
-# endif
-# ifdef HAVE_FTRUNCATE
-#  undef HAVE_FTRUNCATE
-# endif
-#endif
-
-
-#if defined(__GNUC__) && defined(VMS)
-# ifdef HAVE_GETTIMEOFODAY
-#  undef HAVE_GETTIMEOFDAY
-# endif
-#endif
-
 /*
  * DLOPEN   - dlopen()/dlsym() under SunOS and SysV4
  * HPSHLOAD - shl_load()/shl_findsym() under HP-UX

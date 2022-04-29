@@ -842,7 +842,11 @@ static streng *read_index_header( const tsd_t *TSD, char *errfn,
    /*
     * Read the language file header...
     */
+#ifdef VMS
+   *fp = fopen( errfn, "r" );
+#else
    *fp = fopen( errfn, "rb" );
+#endif
    if ( *fp == NULL )
    {
       return simple_msg( TSD, erropen, errfn );

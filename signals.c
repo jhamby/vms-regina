@@ -22,12 +22,6 @@
 #include <stdio.h>
 #include <signal.h>
 
-#ifdef VMS
-# ifndef SIG_ERR
-#  define SIG_ERR BADSIG
-# endif
-#endif
-
 /* at least dolphin does not have a properly ANSI C set of include files */
 #ifndef SIG_ERR
 # define SIG_ERR ((void(*)())(-1))
@@ -251,12 +245,6 @@ void halt_raised( tsd_t *TSD )
                         Str_creTSD( signals_names[sig] ),
                         NULL ) )
       return;
-#ifdef VMS
-   /*
-    * FIXME: Why do we use vms_killproc instead of using exiterror() ?
-    */
-   vms_killproc( TSD );
-#endif
    exiterror( ERR_PROG_INTERRUPT, 0 );
 }
 

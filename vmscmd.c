@@ -289,7 +289,7 @@ int vms_do_command( tsd_t *TSD, const streng *cmd, int io_flags, environment *en
       output.dsc$a_pointer = obuf ;
    }
 
-   sprintf( nbuf, "REXX-%d", getpid()) ;
+   snprintf( nbuf, 32, "REXX-%d", getpid()) ;
    prc_name.dsc$w_length = strlen( nbuf ) ;
    prc_name.dsc$b_dtype = DSC$K_DTYPE_T ;
    prc_name.dsc$b_class = DSC$K_CLASS_S ;
@@ -387,7 +387,6 @@ int vms_do_command( tsd_t *TSD, const streng *cmd, int io_flags, environment *en
    if ((vt->comp_stat & 0x0fffffff) == CLI$_NORMAL) vt->comp_stat = SS$_NORMAL ;
    return (((vt->comp_stat & 0x0fffffff)==SS$_NORMAL) ? 0 : vt->comp_stat) ;
 }
-#endif
 
 int vms_killproc( tsd_t *TSD )
 {
@@ -450,3 +449,4 @@ streng *vms_resolv_symbol( tsd_t *TSD, streng *name, streng *new, streng *pool )
    Str_ncatstrTSD( old, buffer, length ) ;
    return(old) ;
 }
+#endif

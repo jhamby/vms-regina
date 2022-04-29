@@ -1158,7 +1158,11 @@ int init_vars( tsd_t *TSD )
          }
          vt->DebugFile = stderr;
          if (junk[0] && (junk[1] == ',')) {
+#if defined(VMS)
+            if ((vt->DebugFile = fopen(junk + 2, "a")) == NULL)
+#else
             if ((vt->DebugFile = fopen(junk + 2, "ab")) == NULL)
+#endif
             {
                vt->DebugFile = stderr;
             }

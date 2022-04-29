@@ -551,7 +551,11 @@ static void just_compile( tsd_t *TSD, char *outputname )
    ipt = enter_macro( TSD, SrcStr, &instore_buf, &instore_length );
    fclose( TSD->systeminfo->input_fp );
 
+#if defined(VMS)
+   outfp = fopen( outputname, "w" );
+#else
    outfp = fopen( outputname, "wb" );
+#endif
    if ( outfp == NULL )
       exiterror( ERR_PROG_UNREADABLE, 1, "Unable to open output file for "
                                                                    "writing" );
@@ -747,7 +751,7 @@ static int execute_file( tsd_t *TSD )
    else
       TSD->systeminfo->tree = parsing;
 
-#if !defined(MINIMAL) && !defined(VMS) && !defined(DOS) && !defined(_MSC_VER) && !defined(__IBMC__) && !defined(MAC)
+#if !defined(MINIMAL) && !defined(DOS) && !defined(_MSC_VER) && !defined(__IBMC__) && !defined(MAC)
    if ( !fptr )
    {
       struct stat buffer;

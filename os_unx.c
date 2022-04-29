@@ -277,9 +277,6 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
 #else
          rc = system( cmdline ) ;
 #endif
-#ifdef VMS
-         exit (rc); /* This is a separate process, exit() is allowed */
-#else
          if ( WIFEXITED( rc ) )
          {
             fflush( stdout );
@@ -289,7 +286,6 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
             raise( WTERMSIG( rc ) ); /* This is a separate process, raise() is allowed */
          else
             raise( WSTOPSIG( rc ) ); /* This is a separate process, raise() is allowed */
-#endif
          break;
       case SUBENVIR_REXX:
          {
@@ -365,19 +361,6 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
 static int Unx_wait(int process)
 {
    int rc, retval, status;
-#ifdef VMS
-   for ( ; ; )
-   {
-      rc = wait( &status ) ;
-      if (rc != -1)
-         break;
-      rc = errno;
-      if (rc == EINTR)
-         continue;
-      break;
-   }
-   retval = status & 0xff ;
-#else
    for ( ; ; )
    {
 # ifdef NEXT
@@ -401,7 +384,6 @@ static int Unx_wait(int process)
          continue;
       break;
    }
-   /* still ndef VMS */
    if (WIFEXITED(status))
    {
       retval = (int) WEXITSTATUS(status);
@@ -424,7 +406,6 @@ static int Unx_wait(int process)
       else if ( retval == 0 )
          retval = -1;
    }
-#endif /* def VMS */
    return(retval);
 }
 

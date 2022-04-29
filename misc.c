@@ -430,7 +430,9 @@ void getsecs( time_t *secs, time_t *usecs )
       *usecs = (times.tv_usec + 1000000) ;
       *secs = times.tv_sec - 1 ;
    }
+#if !defined(VMS)
    assert( *secs>=0 && *usecs>=0 ) ;
+#endif
 
 #elif defined(HAVE_FTIME)
    struct timeb timebuffer;

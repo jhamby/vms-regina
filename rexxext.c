@@ -30,13 +30,11 @@
 
 #include "rexx.h"
 #include <stdio.h>
-#if !defined(VMS)                                       /* MH 10-06-96 */
 # ifdef HAVE_UNISTD_H
 #  include <unistd.h>                                    /* MH 10-06-96 */
 # endif
 # ifdef HAVE_PWD_H
 #  include <pwd.h>                                      /* MH 10-06-96 */
-# endif                                                 /* MH 10-06-96 */
 #endif
 
 #if defined(WIN32)

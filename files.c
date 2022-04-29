@@ -95,10 +95,7 @@
 # include <limits.h>
 #endif
 #include <time.h>
-#if defined(VMS)
-# include <stat.h>
-# include <unistd.h>
-#elif defined(OS2)
+#if defined(OS2)
 # include <sys/stat.h>
 # ifdef HAVE_UNISTD_H
 #  include <unistd.h>
@@ -565,7 +562,7 @@ static int rx_w32_stat( const char *path, struct _stat *buffer )
  * At least one recent version of GCC for VMS doesn't have this
 
  */
-#if defined(SunKludges) || (defined(__GNUC__) && defined(VMS))
+#if defined(SunKludges)
 # define SEEK_SET  0
 # define SEEK_CUR  1
 # define SEEK_END  2
@@ -574,7 +571,7 @@ static int rx_w32_stat( const char *path, struct _stat *buffer )
 /*
  * Some machines don't defined these ... they should!
  */
-#if defined(VMS) || defined(_MSC_VER) || (defined(WIN32) && defined(__IBMC__)) || (defined(WIN32) && defined(__BORLANDC__)) || defined(__LCC__)
+#if defined(_MSC_VER) || (defined(WIN32) && defined(__IBMC__)) || (defined(WIN32) && defined(__BORLANDC__)) || defined(__LCC__)
 # define F_OK 0
 # define X_OK 1
 # define W_OK 2
@@ -1806,12 +1803,8 @@ static void reopen_file( tsd_t *TSD, fileboxptr ptr )
     * This might perform an exec() and then a system(), which _will_
     * flush all files (close them). The result is that the file might
     * be flushed twice ... not good.
-    *
-    * This don't work on VMS ... but the file system on VMS is so
-    * different anyway, so it will probably not create any problems.
-    * Besides, we don't do exec() and system() on VMS.
     */
-#if !defined(VMS) && !defined(MAC) && !defined(OS2) && !defined(DOS) && !defined(__WATCOMC__) && !defined(_MSC_VER) && !(defined(WIN32) && defined(__IBMC__)) && !defined(__MINGW32__) && !defined(__BORLANDC__) && !defined(__EPOC32__) && !defined(__LCC__) && !defined(SKYOS)
+#if !defined(MAC) && !defined(OS2) && !defined(DOS) && !defined(__WATCOMC__) && !defined(_MSC_VER) && !(defined(WIN32) && defined(__IBMC__)) && !defined(__MINGW32__) && !defined(__BORLANDC__) && !defined(__EPOC32__) && !defined(__LCC__) && !defined(SKYOS)
    if (ptr && ptr->fileptr)
    {
       int flags, fno ;
@@ -2148,7 +2141,7 @@ try_to_open:
    else
       exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" )  ;
 
-#if !defined(VMS) && !defined(MAC) && !defined(OS2) && !defined(DOS) && !defined(__WATCOMC__) && !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__BORLANDC__) && !defined(__EPOC32__) && !defined(__LCC__) && !defined(SKYOS)
+#if !defined(MAC) && !defined(OS2) && !defined(DOS) && !defined(__WATCOMC__) && !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__BORLANDC__) && !defined(__EPOC32__) && !defined(__LCC__) && !defined(SKYOS)
    /*
     * Then we check to see if this is a transient or persistent file.
     * We can remove a 'persistent' setting, but add one, since we
@@ -4041,7 +4034,7 @@ static streng *getstatus( tsd_t *TSD, const streng *filename , int subcommand )
    char tmppwd[50];
    char tmpgrp[50];
    char *ptmppwd=tmppwd,*ptmpgrp=tmpgrp;
-#if !(defined(VMS) || defined(MAC) || defined(OS2) || defined(DOS) || (defined (__WATCOMC__) && !defined(__QNX__)) || defined(_MSC_VER) || (defined(WIN32) && defined(__IBMC__)) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(__EPOC32__) || defined(__LCC__))
+#if !(defined(MAC) || defined(OS2) || defined(DOS) || (defined (__WATCOMC__) && !defined(__QNX__)) || defined(_MSC_VER) || (defined(WIN32) && defined(__IBMC__)) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(__EPOC32__) || defined(__LCC__))
    struct passwd *ppwd;
    struct group *pgrp;
 #endif
@@ -4115,7 +4108,7 @@ static streng *getstatus( tsd_t *TSD, const streng *filename , int subcommand )
           */
          lstat(fn, &buffer) ;
 #endif
-#if defined(VMS) || defined(MAC) || defined(OS2) || defined(DOS) || (defined (__WATCOMC__) && !defined(__QNX__)) || defined(_MSC_VER) || (defined(WIN32) && defined(__IBMC__)) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(__EPOC32__) || defined(__LCC__)
+#if defined(MAC) || defined(OS2) || defined(DOS) || (defined (__WATCOMC__) && !defined(__QNX__)) || defined(_MSC_VER) || (defined(WIN32) && defined(__IBMC__)) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(__EPOC32__) || defined(__LCC__)
          ptmppwd = "USER";
          ptmpgrp = "GROUP";
 #else

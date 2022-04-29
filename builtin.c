@@ -578,24 +578,6 @@ streng *ext_pool_value( tsd_t *TSD, streng *name, streng *value,
    if ( TSD->systeminfo->hooks & HOOK_MASK( HOOK_GETENV ) )
       ok = hookup_input_output( TSD, HOOK_GETENV, name, &retval );
 
-#ifdef VMS
-   if ( ok == HOOK_GO_ON )
-   {
-      /*
-       * Either there was no exit handler, or the exit handler didn't
-       * handle the GETENV. Get the environment variable directly from
-       * the system.
-       */
-      retval = vms_resolv_symbol( TSD, name, value, env );
-   }
-   else if ( value )
-      exiterror( ERR_SYSTEM_FAILURE, 1, "No support for setting an environment variable" );
-   /*
-    * FIXME: What happens if value is set and HOOK_GO_ON isn't set?
-    *        What happens with the different Pools SYMBOL, SYSTEM, LOGICAL?
-    */
-   return retval;
-#else
    if ( ok == HOOK_GO_ON )
    {
       char *val = mygetenv( TSD, name->value, NULL, 0 );
@@ -657,7 +639,6 @@ streng *ext_pool_value( tsd_t *TSD, streng *name, streng *value,
    }
 
    return retval;
-#endif /* !VMS */
 }
 
 /*
@@ -1062,9 +1043,6 @@ streng *std_time( tsd_t *TSD, cparamboxptr parms )
          break ;
 
       case 'O':
-#ifdef VMS
-         timediff = mktime(localtime(&now));
-#else
          timediff = (long)(mktime(localtime(&now))-mktime(gmtime(&now)));
          tmptr = localtime(&now);
 # if !defined(WIN32)
@@ -1073,7 +1051,6 @@ streng *std_time( tsd_t *TSD, cparamboxptr parms )
          if ( tmptr->tm_isdst )
             timediff += 3600;
 # endif
-#endif
          answer->len = sprintf( answer->value, "%ld%s", timediff,(timediff)?"000000":"" );
          break ;
 

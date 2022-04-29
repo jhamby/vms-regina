@@ -903,7 +903,7 @@ call notify 'value'
    call ch value('xyzzy'),       'foo'
 
    xyzzy = 'void'
-   if os = 'UNIX' | os = 'AMIGA' Then
+   if os = 'UNIX' | os = 'AMIGA' | os = 'VMS' Then
       envvar = '$xyzzy'
    else
       envvar = '%xyzzy%'

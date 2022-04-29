@@ -23,9 +23,10 @@ CFLAGS=/OPT=(TUNE=EV67)/ARCH=EV56
 LINK=LINK/NODEBUG
 .ENDIF
 !
+! TODO: remove "TRACEMEM" define after most of the test cases pass.
 CFLAGS=$(CFLAGS)/FLOAT=IEEE/IEEE=DENORM-
         /INCLUDE_DIRECTORY=[]/NAMES=SHORTENED/OBJECT=$(MMS$TARGET_NAME).OBJ-
-        /DEFINE=(VMS,_LARGEFILE,_USE_STD_STAT,SOCKADDR_LEN,-
+        /DEFINE=(VMS,_LARGEFILE,_USE_STD_STAT,SOCKADDR_LEN,TRACEMEM,-
                  REGINA_VERSION_DATE=""$(VER_DATE)"",REGINA_VERSION_MAJOR="""$(VER_MAJOR)""",-
                  REGINA_VERSION_MINOR="""$(VER_MINOR)""",REGINA_VERSION_RELEASE="""$(VER_RELEASE)""",-
                  REGINA_VERSION_SUPP=""$(VER_SUPP)"",REGINA_BITS=32)
@@ -54,7 +55,7 @@ OBJ8=uname.obj,
 .ELSE
 OBJ8=
 .ENDIF
-OBJ9=vmsfuncs.obj,vmscmd.obj,variable.obj,wrappers.obj,yaccsrc.obj,alloca.obj,arxfuncs.obj
+OBJ9=vmsfuncs.obj,vmscmd.obj,variable.obj,wrappers.obj,yaccsrc.obj,arxfuncs.obj
 
 LIB=LIBRARY
 LIBFLAGS=/CREATE regina.olb

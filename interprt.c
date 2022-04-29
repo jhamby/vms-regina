@@ -21,11 +21,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#ifndef VMS
-# ifdef HAVE_UNISTD_H
-#  include <unistd.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
 # endif
-#endif
 #ifdef HAVE_ASSERT_H
 # include <assert.h>
 #endif

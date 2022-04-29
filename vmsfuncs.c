@@ -60,25 +60,6 @@
 #define MIN(a,b) (((a)<(b))?(a):(b))
 
 
-typedef struct cli_block {
-   short length ;
-   char type ;
-   char subtype ;
-   short flags ;
-   short TRO_cnt ;
-} cli_block ;
-
-typedef struct com_block {
-   unsigned char handler ;
-   unsigned char sizes ;
-   unsigned char verbtype ;
-   unsigned char pad ;
-   short name ;
-   short image ;
-   short outputs ;
-   short prefix ;
-} com_block ;
-
 struct fabptr {
    struct fabptr *next ;
    int num ;
@@ -144,9 +125,9 @@ int init_vmf( tsd_t *TSD )
    return(1);
 }
 
-static char *select_code( const int code, const char *values[], const int max )
+static const char *select_code( const int code, const char *values[], const int max )
 {
-   return (char *)values[((code<1)||(code>max)) ? 0 : code] ;
+   return values[((code<0)||(code>=max)) ? 0 : code] ;
 }
 
 static const char *all_privs[] = {
@@ -192,7 +173,7 @@ static streng *internal_id( const tsd_t *TSD, const short *id )
    streng *result ;
 
    result = Str_makeTSD( 20 ) ;
-   sprintf( result->value, "(%d,%d,%d)", id[0], id[1], id[2] ) ;
+   snprintf( result->value, 20, "(%d,%d,%d)", id[0], id[1], id[2] ) ;
    result->len = strlen( result->value ) ;
    return( result ) ;
 }
@@ -308,7 +289,7 @@ static streng *get_uic( const tsd_t *TSD, const UICDEF *uic )
    }
    else
    {
-      sprintf(result->value,"[%o,%o]", uic->uic$v_group, uic->uic$v_member) ;
+      snprintf(result->value, 14, "[%o,%o]", uic->uic$v_group, uic->uic$v_member) ;
       result->len = strlen( result->value ) ;
    }
    return result ;
@@ -384,8 +365,8 @@ static streng *format_result( const tsd_t *TSD, const int type, const char *buff
       case TYP_INT:
       case TYP_VEC:
          result = Str_makeTSD( 12 ) ;
-/*       sprintf( result->value, ((type==TYP_INT) ? "%d" : "%u"), *iptr ) ; */
-         sprintf( result->value, "%d", *iptr ) ;  /* DCL-bug */
+/*       snprintf( result->value, 12, ((type==TYP_INT) ? "%d" : "%u"), *iptr ) ; */
+         snprintf( result->value, 12, "%d", *iptr ) ;  /* DCL-bug */
          result->len = strlen( result->value ) ;
          assert( result->len < result->max ) ;
          break ;
@@ -417,7 +398,7 @@ static streng *format_result( const tsd_t *TSD, const int type, const char *buff
          days = timer / 24 ;
 
          result->len = 16 ;
-         sprintf( result->value, "%4d %02d:%02d:%02d.%02d",
+         snprintf( result->value, 17, "%4d %02d:%02d:%02d.%02d",
                                          days, hour, min, sec, hund ) ;
 
          break ;
@@ -443,7 +424,7 @@ static streng *format_result( const tsd_t *TSD, const int type, const char *buff
          if (*iptr)
          {
             result = Str_makeTSD( 9 ) ;
-            sprintf( result->value, "%08X", *iptr ) ;
+            snprintf( result->value, 9, "%08X", *iptr ) ;
             result->len = strlen( result->value ) ;
          }
          else
@@ -1728,7 +1709,7 @@ streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
    if ((rc != SS$_NORMAL) && (rc != SS$_NOMOREPROC))
       vms_error( TSD, rc ) ;
 
-   sprintf( (val=Str_makeTSD(10))->value, "%08x", pid ) ;
+   snprintf( (val=Str_makeTSD(10))->value, 10, "%08x", pid ) ;
    val->len = 8 ;
    setvalue( TSD, parms->value, val, -1 ) ;
 
@@ -1736,7 +1717,7 @@ streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
       return nullstringptr() ;
 
    assert( length==4 ) ;
-   sprintf( (val=Str_makeTSD(10))->value, "%08x", buffer ) ;
+   snprintf( (val=Str_makeTSD(10))->value, 10, "%08x", buffer ) ;
    val->len = 8 ;
 
    return val ;
@@ -3224,7 +3205,7 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
    {
       case year:
          result = Str_makeTSD( 5 ) ;
-         sprintf( result->value, ((abs) ? "%04d" : "%d"), timearray[func]);
+         snprintf( result->value, 5, ((abs) ? "%04d" : "%d"), timearray[func]);
          result->len = strlen( result->value ) ;
          break ;
 
@@ -3235,7 +3216,7 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
          abs = 0 ;
       case day:
          result = Str_makeTSD( 3 ) ;
-         sprintf( result->value, ((abs) ? "%d" : "%02d"), timearray[func]);
+         snprintf( result->value, 3, ((abs) ? "%d" : "%02d"), timearray[func]);
          result->len = strlen( result->value ) ;
          break ;
 
@@ -3245,14 +3226,14 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
          else
          {
             result = Str_makeTSD( 3 ) ;
-            sprintf( result->value, "%02d", timearray[month]) ;
+            snprintf( result->value, 3, "%02d", timearray[month]) ;
             result->len = 2 ;
          }
          break ;
 
       case time_part:
          result = Str_makeTSD( 12 ) ;
-         sprintf(result->value, "%02d:%02d:%02d.%02d", timearray[hour],
+         snprintf(result->value, 12, "%02d:%02d:%02d.%02d", timearray[hour],
               timearray[minute], timearray[second], timearray[hundredth]) ;
          result->len = 11 ;
          break ;
@@ -3260,12 +3241,12 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
       case date_part:
          result = Str_makeTSD( 12 ) ;
          if (out==delta)
-            sprintf( result->value, "%d", timearray[day] ) ;
+            snprintf( result->value, 12, "%d", timearray[day] ) ;
          else if (abs)
-            sprintf( result->value, "%d-%s-%d", timearray[day],
+            snprintf( result->value, 12, "%d-%s-%d", timearray[day],
                 vms_months[timearray[month]], timearray[year] ) ;
          else
-            sprintf( result->value, "%04d-%02d-%02d", timearray[year],
+            snprintf( result->value, 12, "%04d-%02d-%02d", timearray[year],
                 timearray[month], timearray[day] ) ;
 
          result->len = strlen( result->value ) ;
@@ -3274,16 +3255,16 @@ streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
       case datetime:
          result = Str_makeTSD( 24 ) ;
          if (out==delta)
-            sprintf( result->value, "%d %02d:%02d:%02d.%02d",
+            snprintf( result->value, 24, "%d %02d:%02d:%02d.%02d",
                    timearray[day], timearray[hour], timearray[minute],
                    timearray[second], timearray[hundredth] ) ;
          else if (abs)
-            sprintf( result->value, "%d-%s-%d %02d:%02d:%02d.%02d",
+            snprintf( result->value, 24, "%d-%s-%d %02d:%02d:%02d.%02d",
                    timearray[day], vms_months[timearray[month]],
                    timearray[year], timearray[hour], timearray[minute],
                    timearray[second], timearray[hundredth] ) ;
          else
-            sprintf( result->value, "%04d-%02d-%02d %02d:%02d:%02d.%02d",
+            snprintf( result->value, 24, "%04d-%02d-%02d %02d:%02d:%02d.%02d",
                    timearray[year], timearray[month], timearray[day],
                    timearray[hour], timearray[minute], timearray[second],
                    timearray[hundredth] ) ;

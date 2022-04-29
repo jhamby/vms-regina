@@ -354,7 +354,7 @@ static int local_mkstemp(const tsd_t *TSD, char *base)
       {
          if ( mygetenv( TSD, "TMPDIR", buf, sizeof(buf) ) == NULL)
          {
-#ifdef UNIX
+#if defined(UNIX) || defined(VMS)
             strcpy(buf,"/tmp");
 #else
             strcpy(buf,"C:");
