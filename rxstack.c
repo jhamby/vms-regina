@@ -3232,7 +3232,7 @@ int runNormal( int argc, char **argv )
             world = 1;
             break;
          case 'p':
-            portno = atol( my_optarg );
+            portno = atol( optarg );
             if ( portno == 0
             || portno > 0xFFFF )
             {

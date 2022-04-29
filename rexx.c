@@ -364,15 +364,15 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
          case 'i':
             starttrace( TSD );
             set_trace_char( TSD, '?' );
-            if ( my_optarg )
+            if ( optarg )
             {
-               if ( strlen( my_optarg ) > 1 )
+               if ( strlen( optarg ) > 1 )
                {
                   usage( argv[0] );
                   fprintf( stdout, "\nThe passed switch `-t' allows just one additional character, Regina exits.\n" );
                   exit( 1 );
                }
-               set_trace_char( TSD, *my_optarg );
+               set_trace_char( TSD, *optarg );
             }
             else
                set_trace_char( TSD, 'A' );
@@ -394,14 +394,14 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
             break;
 
          case 'v':
-            if ( my_optarg )
+            if ( optarg )
             {
-               if ( strlen( my_optarg ) > 1 )
+               if ( strlen( optarg ) > 1 )
                {
                   fprintf( stdout, "\nThe passed switch `-v' allows just one additional character, Regina exits.\n" );
                   exit( 1 );
                }
-               switch( *my_optarg )
+               switch( *optarg )
                {
 #if defined(HAVE_REGINA_ADDON_DIR)
                   case 'a':
@@ -444,15 +444,15 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
             break;
 
          case 't':
-            if ( my_optarg )
+            if ( optarg )
             {
-               if ( strlen( my_optarg ) > 1 )
+               if ( strlen( optarg ) > 1 )
                {
                   usage( argv[0] );
                   fprintf( stdout, "\nThe passed switch `-t' allows just one additional character, Regina exits.\n" );
                   exit( 1 );
                }
-               queue_trace_char( TSD, *my_optarg );
+               queue_trace_char( TSD, *optarg );
             }
             else
                queue_trace_char( TSD, 'A' );
@@ -461,9 +461,9 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
 
          case 'd':
          case 'D':
-            if ( my_optarg )
+            if ( optarg )
             {
-               if ( *my_optarg == 'm' )
+               if ( *optarg == 'm' )
                   TSD->listleakedmemory = 1;
             }
             break;
@@ -494,12 +494,12 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
 
          case 'l': /* set locale information, accept empty string */
             *locale_set = 1;
-            set_locale_info( my_optarg );
+            set_locale_info( optarg );
             break;
 
          case 'o': /* command-line OPTIONS */
          {
-            streng *opts = Str_creTSD( my_optarg );
+            streng *opts = Str_creTSD( optarg );
             do_options( TSD, TSD->currlevel, opts, 0 );
             break;
          }
@@ -515,7 +515,7 @@ static int check_args( tsd_t *TSD, int argc, char **argv,
             exit( 1 );
       }
    }
-   return my_optind;
+   return optind;
 }
 
 /*

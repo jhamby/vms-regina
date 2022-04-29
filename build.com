@@ -6,7 +6,7 @@ $ _V = F$VERIFY(1)
 $!
 $ IF P1 .EQS. "CLEAN"
 $ THEN
-$   DELETE/NOLOG *.OBJ;*,*.EXE;*
+$   DELETE/NOLOG *.OBJ;*,*.EXE;*,*.MAP;*,*.OLB;*
 $   EXIT $STATUS
 $ ENDIF
 $!

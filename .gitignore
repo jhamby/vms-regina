@@ -4,3 +4,7 @@
 *.map
 *.log
 cxx_repository/
+trip/a.rexx
+trip/err.rex
+trip/testfile
+trip/tst.rexx

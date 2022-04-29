@@ -31,17 +31,12 @@
 #include <iodef.h>
 #include <jpidef.h>
 #include <rmsdef.h>
+#include <iosbdef.h>
 #include <starlet.h>
 #include <lib$routines.h>
 
 #include "rexx.h"
 #include "strengs.h"
-
-struct mbox_status {
-   unsigned short status ;
-   unsigned short size ;
-   int pid ;
-} ;
 
 #define BUFSIZE 128
 #define NUMBUFS  1
@@ -62,8 +57,8 @@ typedef struct { /* vms_tsd: static variables of this module (thread-safe) */
    int                dead ;
    volatile int       queue ;
    char               buffer[BUFSIZE] ;
-   struct mbox_status ostat ;
-   struct mbox_status istat ;
+   struct _iosb       ostat ;
+   struct _iosb       istat ;
    streng *           kill ;
 } vms_tsd_t; /* thread-specific but only needed by this module. see
               * init_vms
@@ -144,9 +139,9 @@ static void read_in_ast( const int read )
    vt = TSD->vms_tsd;
 
    if (read) {
-      switch ( vt->ostat.status ) {
+      switch ( vt->ostat.iosb$w_status ) {
          case SS$_NORMAL:
-            if (vt->ostat.size >= BUFSIZE)
+            if (vt->ostat.iosb$w_bcnt >= BUFSIZE)
                complain( TSD, SS$_NORMAL ) ;
             ptr = Str_makeTSD( vt->ostat.size ) ;
             ptr = Str_ncatstrTSD( ptr, vt->buffer, vt->ostat.size ) ;
