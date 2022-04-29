@@ -81,8 +81,8 @@
 # endif
 #endif
 
-#if defined(MAC) || defined(GO32) || defined (__EMX__) || (defined(__WATCOMC__) && !defined(__QNX__)) || defined(_MSC_VER) || defined(DJGPP) || defined(__CYGWIN32__) || defined(__BORLANDC__) || defined(__MINGW32__) || defined(__WINS__) || defined(__EPOC32__) ||defined(__LCC__)
-# if defined(__EMX__) || defined(__CYGWIN32__)
+#if defined(MAC) || defined(GO32) || defined (__EMX__) || (defined(__WATCOMC__) && !defined(__QNX__)) || defined(_MSC_VER) || defined(DJGPP) || defined(__CYGWIN32__) || defined(__BORLANDC__) || defined(__MINGW32__) || defined(__WINS__) || defined(__EPOC32__) || defined(__LCC__) || defined(VMS)
+# if defined(__EMX__) || defined(__CYGWIN32__) || defined(VMS)
 #  define ISTR_SLASH "/"  /* This is not a must, \\ works, too */
 #  define I_SLASH '/'  /* This is not a must, \\ works, too */
 # elif defined(MAC)
@@ -96,8 +96,10 @@
 #  ifndef HAVE_UNISTD_H
 #   include <io.h> /* access() */
 #  endif
-#  include <process.h>
-#  include <share.h>
+#  if !defined(VMS)
+#   include <process.h>
+#   include <share.h>
+#  endif
 # endif
 # include <time.h>
 #endif

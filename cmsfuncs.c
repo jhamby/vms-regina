@@ -32,6 +32,7 @@
 #else
 # if defined(VMS)
 #  include <stat.h>
+#  include <unistd.h>
 # else
 #  include <sys/stat.h>
 #  ifdef HAVE_UNISTD_H

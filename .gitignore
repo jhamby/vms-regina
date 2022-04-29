@@ -1,0 +1,6 @@
+*.obj
+*.olb
+*.exe
+*.map
+*.log
+cxx_repository/
