@@ -216,7 +216,9 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
                                         "rexx" };
    char **args ;
    int i, rc, max_hdls = MaxFiles() ;
+#if !defined(VMS)
    int broken_address_command = get_options_flag( TSD->currlevel, EXT_BROKEN_ADDRESS_COMMAND );
+#endif
    int subtype;
 
    if ( ( rc = fork() ) != 0 )
@@ -253,15 +255,21 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
     * If the BROKEN_ADDRESS_COMMAND OPTION is in place,
     * and our environment is COMMAND, change it to SYSTEM
     */
+#if !defined(VMS)
    if ( env->subtype == SUBENVIR_PATH /* was SUBENVIR_COMMAND */
    &&   broken_address_command )
       subtype = SUBENVIR_SYSTEM;
    else
+#endif
       subtype = env->subtype;
 
    switch ( subtype )
    {
       case SUBENVIR_PATH:
+#if defined(VMS)
+      /* VMS can't call system() after vfork(), so use execvp() instead. */
+      case SUBENVIR_SYSTEM:
+#endif
          args = makeargs(cmdline, '\\');
          execvp(*args, args);
          break;
@@ -271,6 +279,7 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
          execv(*args, args);
          break;
 
+#if !defined(VMS)
       case SUBENVIR_SYSTEM:
 #if defined(HAVE_WIN32GUI)
          rc = mysystem( cmdline ) ;
@@ -287,6 +296,7 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
          else
             raise( WSTOPSIG( rc ) ); /* This is a separate process, raise() is allowed */
          break;
+#endif
       case SUBENVIR_REXX:
          {
             char *new_cmdline;
@@ -305,7 +315,11 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
             len += strlen(cmdline) + 2; /* Blank + term ASCII0 */
 
             if ((new_cmdline = (char *)malloc(len)) == NULL)
+#if defined(VMS)
+               _exit( EXIT_FAILURE );   /* This isn't a separate process on VMS. */
+#else
                raise( SIGKILL ); /* This is a separate process, raise() is allowed */
+#endif
 
             if (argv0 != NULL) /* always the best choice */
             {
@@ -340,11 +354,19 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
    }
 
       default: /* illegal subtype */
+#if defined(VMS)
+         _exit( EXIT_FAILURE );   /* This isn't a separate process on VMS. */
+#else
          raise( SIGKILL ) ; /* This is a separate process, raise() is allowed */
+#endif
    }
 
    /* exec() failed */
+#if defined(VMS)
+   _exit( EXIT_FAILURE );   /* This isn't a separate process on VMS. */
+#else
    raise( SIGKILL ); /* This is a separate process, raise() is allowed */
+#endif
 #undef SET_MAXHDLS
 #undef SET_MAXHDL
 #undef STD_REDIR

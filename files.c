@@ -6553,7 +6553,7 @@ int my_fullpath( const tsd_t *TSD, char *dst, const char *src )
 {
    /* hack for leading ~/ */
    int len = strlen( src );
-   char *source=NULL;
+   const char *source=NULL;
    char *copy=NULL;
    if ( ( len > 1 && strncmp( src, "~/", 2 ) == 0 ) || ( len == 1 && strncmp( src, "~", 1 ) == 0) )
    {

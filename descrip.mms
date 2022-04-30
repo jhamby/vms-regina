@@ -24,9 +24,10 @@ LINK=LINK/NODEBUG
 .ENDIF
 !
 ! TODO: remove "TRACEMEM" define after most of the test cases pass.
-CFLAGS=$(CFLAGS)/FLOAT=IEEE/IEEE=DENORM-
+CFLAGS=$(CFLAGS)/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT-
         /INCLUDE_DIRECTORY=[]/NAMES=SHORTENED/OBJECT=$(MMS$TARGET_NAME).OBJ-
-        /DEFINE=(VMS,_LARGEFILE,_USE_STD_STAT,SOCKADDR_LEN,TRACEMEM,-
+        /DEFINE=(VMS,_LARGEFILE,_USE_STD_STAT,SOCKADDR_LEN,_POSIX_EXIT,__UNIX_PUTC,-
+                 TRACEMEM,-
                  REGINA_VERSION_DATE=""$(VER_DATE)"",REGINA_VERSION_MAJOR="""$(VER_MAJOR)""",-
                  REGINA_VERSION_MINOR="""$(VER_MINOR)""",REGINA_VERSION_RELEASE="""$(VER_RELEASE)""",-
                  REGINA_VERSION_SUPP=""$(VER_SUPP)"",REGINA_BITS=32)
@@ -44,7 +45,7 @@ LINKFLAGS=/MAP
 OBJ1=builtin.obj,client.obj,cmath.obj,cmsfuncs.obj,convert.obj,
 OBJ2=dbgfuncs.obj,debug.obj,envir.obj,error.obj,expr.obj,
 !OBJ3=extlib.obj,files.obj,funcs.obj,
-OBJ3=files.obj,funcs.obj,mygetopt.obj,os_other.obj,
+OBJ3=files.obj,funcs.obj,mygetopt.obj,os_unx.obj,
 OBJ4=mt_notmt.obj,rexxbif.obj,instore.obj,extstack.obj,os2funcs.obj,
 OBJ5=interp.obj,interprt.obj,lexsrc.obj,library.obj,macros.obj,memory.obj,
 OBJ6=misc.obj,options.obj,parsing.obj,rexxext.obj,rexxsaa.obj,shell.obj,
@@ -63,20 +64,20 @@ LIBFLAGS=/CREATE regina.olb
 all : rexx.exe, regina.exe, execiser.exe
 !
 rexx.exe :      rexx.obj, -
-        $(OBJ1)$(OBJ2)$(OBJ3)$(OBJ4)$(OBJ5)$(OBJ6)$(OBJ7)$(OBJ8)$(OBJ9)
+        $(OBJ1)$(OBJ2)$(OBJ3)$(OBJ4)$(OBJ5)$(OBJ6)$(OBJ7)$(OBJ8)$(OBJ9),vms_crtl_init.obj
         @ write sys$output "Linking $(MMS$TARGET) "
         $(LINK) $(LINKFLAGS) $(MMS$SOURCE_LIST)
         @ write sys$output "Done (linking)."
 !
 regina.exe :    regina.obj,regina.olb
         @ write sys$output "Linking $(MMS$TARGET) "
-        $(LINK) $(LINKFLAGS) regina.obj,regina.olb/LIBRARY
+        $(LINK) $(LINKFLAGS) regina.obj,vms_crtl_init.obj,regina.olb/LIBRARY
         @ write sys$output "Done (linking)."
 !
 execiser.exe :  execiser.obj,regina.olb
         @ write sys$output ""
         @ write sys$output "Linking $(MMS$TARGET) "
-        $(LINK) $(LINKFLAGS) execiser.obj,regina.olb/LIBRARY
+        $(LINK) $(LINKFLAGS) execiser.obj,vms_crtl_init.obj,regina.olb/LIBRARY
         @ write sys$output "Done (linking)."
 !
 regina.olb :    drexx.obj,rexxsaa.obj,client.obj -
@@ -230,7 +231,7 @@ os2funcs.obj :   os2funcs.c, rexx.h
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)
         @ write sys$output "Done (compiling)."
-os_other.obj :   os_other.c, rexx.h
+os_unx.obj :   os_unx.c, rexx.h
         @ write sys$output ""
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)
@@ -311,6 +312,11 @@ unxfuncs.obj :  unxfuncs.c, utsname.h, rexx.h
         $(CC) $(CFLAGS) $(MMS$SOURCE)
         @ write sys$output "Done (compiling)."
 variable.obj :  variable.c, rexx.h
+        @ write sys$output ""
+        @ write sys$output "Compiling $(MMS$SOURCE) "
+        $(CC) $(CFLAGS) $(MMS$SOURCE)
+        @ write sys$output "Done (compiling)."
+vms_crtl_init.obj :  vms_crtl_init.c
         @ write sys$output ""
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)

@@ -248,6 +248,9 @@ static const char *GetArgv0(const char *argv0)
          return strdup( buf );
       }
    }
+#elif defined(VMS)
+   /* Assume that argv0 is a full path, since we can't really fix it if not. */
+   return(argv0);
 #elif defined(HAVE_READLINK)
    {
       /*

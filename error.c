@@ -815,11 +815,7 @@ not_hookable:
    CloseOpenFiles( TSD, fpdRETAIN );
    free_orphaned_libs( TSD );
 
-#ifdef VMS
-   jump_interpreter_exit( TSD, EXIT_SUCCESS );
-#else
    jump_interpreter_exit( TSD, errorno );
-#endif
 }
 
 /* This function is called by the parser (syntactical interpreter) if an error

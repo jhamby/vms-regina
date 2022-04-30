@@ -732,7 +732,7 @@
 # define FILE_SEPARATOR_STR  "\\"
 # define PATH_SEPARATOR      ';'
 # define PATH_SEPARATOR_STR  ";"
-#elif defined(VMS)
+#elif defined(VMS) && defined(USE_VMS_STYLE_PATHS)
 # define FILE_SEPARATORS    "]"
 # define FILE_SEPARATOR     ']'
 # define FILE_SEPARATOR_STR "]"

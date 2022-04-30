@@ -45,6 +45,7 @@
 #     define HAVE_MMAP
 #     define HAVE_PUTENV
 #     define HAVE_RANDOM
+#     define HAVE_SETENV
 #     define HAVE_SIGACTION
 #     define HAVE_SYSCONF
 #     define HAVE_USLEEP
@@ -74,7 +75,7 @@
 #       define HAVE_CRYPT
 #       define HAVE_LSTAT
 #       define HAVE_READLINK
-#       undef HAVE_REALPATH     /* use the VMS version of my_fullpath() */
+#       define HAVE_REALPATH    /* use the UNIX version of my_fullpath() */
 #   endif
 #   define HAVE_DIV
 #   define HAVE_FTIME

@@ -268,13 +268,6 @@
 
 #define FREE_IF_DEFINED(a,b) { if (b) Free_TSD(a,b); b=NULL ; }
 
-#ifdef VMS  /* F*ck DEC */
-# ifdef EXIT_SUCCESS
-#  undef EXIT_SUCCESS
-# endif
-# define EXIT_SUCCESS 1
-#endif
-
 #ifdef HAVE_GETOPT_LONG
 # include <getopt.h>
 # define my_getopt_long getopt_long
