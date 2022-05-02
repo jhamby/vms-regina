@@ -3,6 +3,7 @@
 *.exe
 *.map
 *.log
+*.lis
 cxx_repository/
 trip/a.rexx
 trip/err.rex

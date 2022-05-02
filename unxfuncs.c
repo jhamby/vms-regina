@@ -38,7 +38,7 @@
 #endif
 
 #define HAVE_FORK
-#if defined(__WATCOMC__) || defined(_MSC_VER)  || (defined(__IBMC__) && defined(WIN32)) || defined(__SASC) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(DOS) || defined(__WINS__) || defined(__EPOC32__) ||defined(__LCC__)
+#if defined(__WATCOMC__) || defined(_MSC_VER)  || (defined(__IBMC__) && defined(WIN32)) || defined(__SASC) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(DOS) || defined(__WINS__) || defined(__EPOC32__) ||defined(__LCC__) || defined(__VMS)
 # undef HAVE_FORK
 #endif
 #if defined(__WATCOMC__) && defined(__QNX__)

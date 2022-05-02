@@ -195,6 +195,7 @@ static int MaxFiles(void)
 }
 #endif
 
+#if !defined(HAVE_FORK_IS_VFORK)
 /*
  * fork_exec spawns a new process with the given commandline.
  * it returns -1 on error (errno set), 0 on process start error (rcode set),
@@ -216,9 +217,7 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
                                         "rexx" };
    char **args ;
    int i, rc, max_hdls = MaxFiles() ;
-#if !defined(VMS)
    int broken_address_command = get_options_flag( TSD->currlevel, EXT_BROKEN_ADDRESS_COMMAND );
-#endif
    int subtype;
 
    if ( ( rc = fork() ) != 0 )
@@ -255,21 +254,15 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
     * If the BROKEN_ADDRESS_COMMAND OPTION is in place,
     * and our environment is COMMAND, change it to SYSTEM
     */
-#if !defined(VMS)
    if ( env->subtype == SUBENVIR_PATH /* was SUBENVIR_COMMAND */
    &&   broken_address_command )
       subtype = SUBENVIR_SYSTEM;
    else
-#endif
       subtype = env->subtype;
 
    switch ( subtype )
    {
       case SUBENVIR_PATH:
-#if defined(VMS)
-      /* VMS can't call system() after vfork(), so use execvp() instead. */
-      case SUBENVIR_SYSTEM:
-#endif
          args = makeargs(cmdline, '\\');
          execvp(*args, args);
          break;
@@ -279,7 +272,6 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
          execv(*args, args);
          break;
 
-#if !defined(VMS)
       case SUBENVIR_SYSTEM:
 #if defined(HAVE_WIN32GUI)
          rc = mysystem( cmdline ) ;
@@ -296,7 +288,6 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
          else
             raise( WSTOPSIG( rc ) ); /* This is a separate process, raise() is allowed */
          break;
-#endif
       case SUBENVIR_REXX:
          {
             char *new_cmdline;
@@ -315,11 +306,7 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
             len += strlen(cmdline) + 2; /* Blank + term ASCII0 */
 
             if ((new_cmdline = (char *)malloc(len)) == NULL)
-#if defined(VMS)
-               _exit( EXIT_FAILURE );   /* This isn't a separate process on VMS. */
-#else
                raise( SIGKILL ); /* This is a separate process, raise() is allowed */
-#endif
 
             if (argv0 != NULL) /* always the best choice */
             {
@@ -354,24 +341,126 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
    }
 
       default: /* illegal subtype */
-#if defined(VMS)
-         _exit( EXIT_FAILURE );   /* This isn't a separate process on VMS. */
-#else
          raise( SIGKILL ) ; /* This is a separate process, raise() is allowed */
-#endif
    }
 
    /* exec() failed */
-#if defined(VMS)
-   _exit( EXIT_FAILURE );   /* This isn't a separate process on VMS. */
-#else
    raise( SIGKILL ); /* This is a separate process, raise() is allowed */
-#endif
 #undef SET_MAXHDLS
 #undef SET_MAXHDL
 #undef STD_REDIR
    return -1; /* keep the compiler happy */
 }
+#else /* def HAS_FORK_IS_VFORK */
+
+/*
+ * fork_exec spawns a new process with the given commandline.
+ * This version is for OpenVMS and other systems that only have vfork().
+ * We have to be careful not to allocate memory between vfork() and exec*().
+ * The only context that's preserved is the file descriptor configuration.
+ */
+int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
+{
+   /* This version only tries "regina" if argv[0] isn't available. */
+   static const char *interpreter = "regina" ;
+   char **args ;
+   int i, rc, max_hdls = MaxFiles() ;
+   int use_execvp = TRUE ;
+   char *new_cmdline = NULL ;
+
+   switch ( env->subtype )
+   {
+      case SUBENVIR_PATH:
+      case SUBENVIR_SYSTEM:
+         args = makeargs(cmdline, '\\');
+         break;
+
+      case SUBENVIR_COMMAND:
+         args = makeargs(cmdline, '\\');
+         use_execvp = FALSE;
+         break;
+
+      case SUBENVIR_REXX:
+         {
+            unsigned len;
+
+            if (argv0 == NULL)
+               len = 7; /* max("rexx", "regina") */
+            else
+               {
+                  len = strlen(argv0);
+                  if (len < 7)
+                     len = 7; /* max("rexx", "regina") */
+               }
+            len += strlen(cmdline) + 2; /* Blank + term ASCII0 */
+
+            if ((new_cmdline = (char *)malloc(len)) == NULL)
+               return -1;       /* memory allocation failure */
+
+            if (argv0 != NULL) /* always the best choice */
+            {
+               strcpy(new_cmdline, argv0);
+            }
+            else
+            {
+               strcpy(new_cmdline, interpreter);
+            }
+            strcat(new_cmdline, " ");
+            strcat(new_cmdline, cmdline);
+            args = makeargs(new_cmdline, '\\');
+   }
+
+      default: /* illegal subtype */
+         return -1;     /* return failure */
+   }
+
+   if ( ( rc = vfork() ) != 0 )
+   {
+      destroyargs(args);
+      if (new_cmdline)
+      {
+         free(new_cmdline);
+      }
+      return( rc );
+   }
+
+   /* Now we are the child */
+
+#define STD_REDIR(hdl,dest) if ((hdl != -1) && (hdl != dest)) dup2(hdl, dest)
+#define SET_MAXHDL(hdl) if (hdl > max_hdls) max_hdls = hdl
+#define SET_MAXHDLS(ep) SET_MAXHDL(ep.hdls[0]); SET_MAXHDL(ep.hdls[1])
+
+                                        /* Force the standard redirections:  */
+   STD_REDIR(env->input.hdls[0],    0);
+   STD_REDIR(env->output.hdls[1],   1);
+   if (env->error.SameAsOutput)
+   {
+      STD_REDIR(1,                  2);
+   }
+   else
+   {
+      STD_REDIR(env->error.hdls[1], 2);
+   }
+
+                                    /* any handle greater than the default ? */
+   SET_MAXHDLS(env->input);
+   SET_MAXHDLS(env->output);
+   if (!env->error.SameAsOutput)
+      SET_MAXHDLS(env->error);
+
+   for (i=3; i <= max_hdls; i++)
+      close( i ) ;
+
+   if (use_execvp)
+      execvp(*args, args);
+   else
+      execv(*args, args);
+
+   /* If we get to this point, the exec*() failed, so _exit() with a failure. */
+   _exit(EXIT_FAILURE);
+}
+
+#endif /* ndef HAS_FORK_IS_VFORK */
 
 /* wait waits for a process started by fork_exec.
  * In general, this is called after the complete IO to the called process but

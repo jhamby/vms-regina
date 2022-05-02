@@ -25,7 +25,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <stdbool.h>
 
 #define __NEW_STARLET 1         /* enable VMS function prototypes */
 
@@ -181,10 +180,9 @@ static streng *internal_id( const tsd_t *TSD, const short *id )
 static int name_to_num( const tsd_t *TSD, const streng *name )
 {
    unsigned int id, rc ;
-   $DESCRIPTOR( descr, "" ) ;
-
-   descr.dsc$w_length = name->len ;
-   descr.dsc$a_pointer = (char *)name->value ;
+   struct dsc$descriptor_s descr = {
+      name->len, DSC$K_DTYPE_T, DSC$K_CLASS_S, (char *)name->value
+   } ;
    rc = sys$asctoid( &descr, &id, NULL ) ;
    if (rc == SS$_NOSUCHID || rc == SS$_IVIDENT)
       return 0 ;
@@ -203,7 +201,7 @@ static streng *num_to_name( const tsd_t *TSD, const int num )
    streng *result ;
    unsigned short length, glength ;
    int rc, xnum, context, theid ;
-   bool success = true;
+   int success = TRUE;
 
    if (num == 0)
       return NULL ;
@@ -213,15 +211,15 @@ static streng *num_to_name( const tsd_t *TSD, const int num )
       xnum = num | 0x0000ffff ;
       rc = sys$idtoasc( xnum, &glength, &gdescr, NULL, NULL, NULL) ;
       if (rc == SS$_NOSUCHID)
-         success = false;
+         success = FALSE;
       else if (rc != SS$_NORMAL)
       {
          vms_error( TSD, rc ) ;
-         success = false;
+         success = FALSE;
       }
    }
    else
-      success = false;
+      success = FALSE;
 
    rc = sys$idtoasc( num, &length, &udescr, NULL, NULL, NULL ) ;
 

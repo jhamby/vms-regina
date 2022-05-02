@@ -6,7 +6,8 @@ $ _V = F$VERIFY(1)
 $!
 $ IF P1 .EQS. "CLEAN"
 $ THEN
-$   DELETE/NOLOG *.OBJ;*,*.EXE;*,*.MAP;*,*.OLB;*
+$   DELETE/NOLOG *.OBJ;*,*.EXE;*,*.MAP;*,*.OLB;*,*.LIS;*
+$   _V = F$VERIFY(_V)     ! reset
 $   EXIT $STATUS
 $ ENDIF
 $!
@@ -60,7 +61,7 @@ $     _MACRO = DQ + MACRO1 + DQ
 $   ENDIF
 $ ENDIF
 $
-$ IF DEBUG THEN _MACRO = _MACRO + "," + DQ + "DEBUG" + DQ
+$ IF DEBUG THEN _MACRO = _MACRO + "," + DQ + "DEBUGGING" + DQ
 $
 $ '_MAKE' /MACRO=('_MACRO')
 $

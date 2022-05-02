@@ -13,8 +13,8 @@
 !
 .INCLUDE regina.ver
 !
-.IFDEF DEBUG
-CC=CC/DECC/DEBUG
+.IFDEF DEBUGGING
+CC=CC/DECC/DEBUG/LIST
 CFLAGS=/NOOPTIMIZE
 LINK=LINK
 .ELSE
@@ -69,12 +69,12 @@ rexx.exe :      rexx.obj, -
         $(LINK) $(LINKFLAGS) $(MMS$SOURCE_LIST)
         @ write sys$output "Done (linking)."
 !
-regina.exe :    regina.obj,regina.olb
+regina.exe :    regina.obj,regina.olb,vms_crtl_init.obj
         @ write sys$output "Linking $(MMS$TARGET) "
         $(LINK) $(LINKFLAGS) regina.obj,vms_crtl_init.obj,regina.olb/LIBRARY
         @ write sys$output "Done (linking)."
 !
-execiser.exe :  execiser.obj,regina.olb
+execiser.exe :  execiser.obj,regina.olb,vms_crtl_init.obj
         @ write sys$output ""
         @ write sys$output "Linking $(MMS$TARGET) "
         $(LINK) $(LINKFLAGS) execiser.obj,vms_crtl_init.obj,regina.olb/LIBRARY
@@ -86,9 +86,9 @@ regina.olb :    drexx.obj,rexxsaa.obj,client.obj -
         $(LIB) $(LIBFLAGS) $(MMS$SOURCE_LIST)
         @ write sys$output "Done (library)."
 !
-clean : rexx.exe, regina.exe
-        @ delete/nolog  rexx.exe;*,regina.exe;*
-        @ delete/nolog *.obj;*,*.map;*,*.olb;*
+clean :
+        @ delete/nolog  rexx.exe;*,regina.exe;*,execiser.exe;*
+        @ delete/nolog *.obj;*,*.map;*,*.olb;*,*.lis;*
         @ write sys$output "Done (cleaning)."
 !
 alloca.obj : alloca.c

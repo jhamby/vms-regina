@@ -73,6 +73,14 @@
 
 */
 
+/* Start local changes. */
+#define __NEW_STARLET 1         /* enable VMS function prototypes */
+#define GNV_UNIX_TOOL 1         /* always use GNV-style behavior */
+#include <starlet.h>
+#include <lib$routines.h>
+#include <unixlib.h>
+/* End local changes. */
+
 #include <stdio.h>
 #include <descrip.h>
 #include <lnmdef.h>
@@ -103,11 +111,15 @@ struct itmlst_3 {
 
 #define ENABLE TRUE
 #define DISABLE 0
+
+#if 0
 int   decc$feature_get_index (const char *name);
 int   decc$feature_set_value (int index, int mode, int value);
-
+#endif
 #endif
 
+/* Get these prototypes from the system header files */
+#if 0
 int   SYS$TRNLNM(
 	const unsigned long * attr,
 	const struct dsc$descriptor_s * table_dsc,
@@ -121,6 +133,7 @@ int   SYS$CRELNM(
 	const unsigned char * acmode,
 	const struct itmlst_3 * item_list);
 int   LIB$SIGNAL(int);
+#endif
 
 /* Take all the fun out of simply looking up a logical name */
 static int sys_trnlnm
@@ -128,8 +141,8 @@ static int sys_trnlnm
     char * value,
     int value_len)
 {
-    const $DESCRIPTOR(table_dsc, "LNM$FILE_DEV");
-    const unsigned long attr = LNM$M_CASE_BLIND;
+    $DESCRIPTOR(table_dsc, "LNM$FILE_DEV");
+    unsigned int attr = LNM$M_CASE_BLIND;
     struct dsc$descriptor_s name_dsc;
     int status;
     unsigned short result;
@@ -292,10 +305,10 @@ static void set_coe ( void )
     set_feature_default("DECC$DISABLE_POSIX_ROOT", DISABLE);
 
     /* EFS charset, means UTF-8 support */
-    /* VTF-7 support is controlled by a feature setting called UTF8 */
+    /* New: enable support for UTF-8 filename encoding */
     set_feature_default ("DECC$EFS_CHARSET" 		, ENABLE);
     set_feature_default ("DECC$EFS_CASE_PRESERVE"	, ENABLE);
-
+    set_feature_default ("DECC$FILENAME_ENCODING_UTF8"	, ENABLE);
 
     /* Support timestamps when available */
     set_feature_default ("DECC$EFS_FILE_TIMESTAMPS"	, ENABLE);
@@ -362,15 +375,12 @@ static void set_coe ( void )
     /* Set strtol to proper behavior */
     set_feature_default("DECC$STRTOL_ERANGE", ENABLE);
 
-    /*  Pipe feature settings are longer needed with virtual memory pipe
-	code.  Programs that use  pipe need to be converted to use the
-	virtual memory pipe code, which effectively removes the hangs and
-	left over temporary files.
-
-        Comment left here to prevent regressions, as the larger pipe size
-        actually hurts memory usage with the new algorithm.
+    /* Increase pipe buffer size to 8KB. NOTE: This line was previously
+     * commented out because of the use of a custom pipe() implementation
+     * for GNV ports (vms_vm_pipe.c). For Regina, the system pipe() should
+     * be efficient enough, and uses fewer resources than vms_vm_pipe.c.
      */
-    /* do_not_set_default ("DECC$PIPE_BUFFER_SIZE"	, 8192); */
+    set_feature_default("DECC$PIPE_BUFFER_SIZE"	, 8192);
 
 
     /* Rather than remove this completely, a comment is left here to warn

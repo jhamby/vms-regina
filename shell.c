@@ -47,18 +47,6 @@
 # include <unistd.h>
 #endif
 
-#if defined(VMS)
-# define fork() vfork()
-
-#if 0
-/* lets try and see if VMS is smart enough now to do this posixly */
-# ifdef  posix_do_command
-#  undef posix_do_command
-# endif
-# define posix_do_command __regina_vms_do_command
-#endif
-#endif
-
 #define STD_IO     0x00
 #define QUEUE      0x01
 #define LIFO       0x02

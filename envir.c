@@ -20,21 +20,6 @@
 #include "rexx.h"
 #include <string.h>
 
-#if defined(VMS)
-# define fork() vfork()
-/*
- *  At least with OpenVMS 7.3-1 on Alpha, the Posix way seems to work.
- *  So there is no need to redirect on (now) bogus code.
- */
-
-#ifdef VMS_DO_COMMAND
-# ifdef posix_do_command
-#  undef posix_do_command
-# endif
-# define posix_do_command __regina_vms_do_command
-#endif
-#endif
-
 /*
  * The following strings must match AddressWithType enums in regina_t.h
  */
