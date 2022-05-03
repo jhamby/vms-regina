@@ -357,14 +357,14 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
  * fork_exec spawns a new process with the given commandline.
  * This version is for OpenVMS and other systems that only have vfork().
  * We have to be careful not to allocate memory between vfork() and exec*().
- * The only context that's preserved is the file descriptor configuration.
+ * Unlike BSD vfork(), we also have to preserve the file descriptor state.
  */
 int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
 {
    /* This version only tries "regina" if argv[0] isn't available. */
    static const char *interpreter = "regina" ;
    char **args ;
-   int i, rc, max_hdls = MaxFiles() ;
+   int i, rc, std_fds[3] ;
    int use_execvp = TRUE ;
    char *new_cmdline = NULL ;
 
@@ -414,21 +414,13 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
          return -1;     /* return failure */
    }
 
-   if ( ( rc = vfork() ) != 0 )
+   /* Save copies of the standard file descriptors. */
+   for (i = 0; i < 3; i++)
    {
-      destroyargs(args);
-      if (new_cmdline)
-      {
-         free(new_cmdline);
-      }
-      return( rc );
+      std_fds[i] = dup(i);
    }
 
-   /* Now we are the child */
-
 #define STD_REDIR(hdl,dest) if ((hdl != -1) && (hdl != dest)) dup2(hdl, dest)
-#define SET_MAXHDL(hdl) if (hdl > max_hdls) max_hdls = hdl
-#define SET_MAXHDLS(ep) SET_MAXHDL(ep.hdls[0]); SET_MAXHDL(ep.hdls[1])
 
                                         /* Force the standard redirections:  */
    STD_REDIR(env->input.hdls[0],    0);
@@ -442,14 +434,26 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
       STD_REDIR(env->error.hdls[1], 2);
    }
 
-                                    /* any handle greater than the default ? */
-   SET_MAXHDLS(env->input);
-   SET_MAXHDLS(env->output);
-   if (!env->error.SameAsOutput)
-      SET_MAXHDLS(env->error);
+#undef STD_REDIR
 
-   for (i=3; i <= max_hdls; i++)
-      close( i ) ;
+   if ( ( rc = vfork() ) != 0 )
+   {
+      /* Reset the standard file descriptors. */
+      for (i = 0; i < 3; i++)
+      {
+         if (std_fds[i] != -1)
+            dup2(std_fds[i], i);
+      }
+
+      destroyargs(args);
+      if (new_cmdline)
+      {
+         free(new_cmdline);
+      }
+      return( rc );
+   }
+
+   /* Now we are the child */
 
    if (use_execvp)
       execvp(*args, args);
