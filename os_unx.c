@@ -438,11 +438,14 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
 
    if ( ( rc = vfork() ) != 0 )
    {
-      /* Reset the standard file descriptors. */
+      /* Reset the standard file descriptors and close the copies. */
       for (i = 0; i < 3; i++)
       {
-         if (std_fds[i] != -1)
+         if (std_fds[i] != -1 && std_fds[i] != i)
+         {
             dup2(std_fds[i], i);
+            close(std_fds[i]);
+         }
       }
 
       destroyargs(args);

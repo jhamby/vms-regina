@@ -71,15 +71,15 @@
  2-003	J. Malmberg	Add DECC$FILENAME_UNIX_NOVERSION as version numbers
 			will usually mess up ported programs.
 
+    Updated for Regina port by Jake Hamby.
 */
 
-/* Start local changes. */
 #define __NEW_STARLET 1         /* enable VMS function prototypes */
 #define GNV_UNIX_TOOL 1         /* always use GNV-style behavior */
 #include <starlet.h>
 #include <lib$routines.h>
 #include <unixlib.h>
-/* End local changes. */
+#include <iledef.h>
 
 #include <stdio.h>
 #include <descrip.h>
@@ -87,6 +87,7 @@
 #include <stsdef.h>
 #include <string.h>
 
+#if 0
 #pragma message disable pragma
 #pragma message disable dollarid
 #pragma message disable valuepres
@@ -103,6 +104,7 @@ struct itmlst_3 {
 };
 #pragma message restore
 #pragma member_alignment restore
+#endif
 
 #ifdef __VAX
 #define ENABLE "ENABLE"
@@ -146,15 +148,15 @@ static int sys_trnlnm
     struct dsc$descriptor_s name_dsc;
     int status;
     unsigned short result;
-    struct itmlst_3 itlst[2];
+    struct _ile3 itlst[2];
 
-    itlst[0].buflen = value_len;
-    itlst[0].itmcode = LNM$_STRING;
-    itlst[0].bufadr = value;
-    itlst[0].retlen = &result;
+    itlst[0].ile3$w_length = value_len;
+    itlst[0].ile3$w_code = LNM$_STRING;
+    itlst[0].ile3$ps_bufaddr = value;
+    itlst[0].ile3$ps_retlen_addr = &result;
 
-    itlst[1].buflen = 0;
-    itlst[1].itmcode = 0;
+    itlst[1].ile3$w_length = 0;
+    itlst[1].ile3$w_code = 0;
 
     name_dsc.dsc$w_length = strlen(logname);
     name_dsc.dsc$a_pointer = (char *)logname;
@@ -182,7 +184,7 @@ static int sys_crelnm
     const char * proc_table = "LNM$PROCESS_TABLE";
     struct dsc$descriptor_s proc_table_dsc;
     struct dsc$descriptor_s logname_dsc;
-    struct itmlst_3 item_list[2];
+    struct _ile3 item_list[2];
 
     proc_table_dsc.dsc$a_pointer = (char *) proc_table;
     proc_table_dsc.dsc$w_length = strlen(proc_table);
@@ -194,13 +196,13 @@ static int sys_crelnm
     logname_dsc.dsc$b_dtype = DSC$K_DTYPE_T;
     logname_dsc.dsc$b_class = DSC$K_CLASS_S;
 
-    item_list[0].buflen = strlen(value);
-    item_list[0].itmcode = LNM$_STRING;
-    item_list[0].bufadr = (char *)value;
-    item_list[0].retlen = NULL;
+    item_list[0].ile3$w_length = strlen(value);
+    item_list[0].ile3$w_code = LNM$_STRING;
+    item_list[0].ile3$ps_bufaddr = (char *)value;
+    item_list[0].ile3$ps_retlen_addr = NULL;
 
-    item_list[1].buflen = 0;
-    item_list[1].itmcode = 0;
+    item_list[1].ile3$w_length = 0;
+    item_list[1].ile3$w_code = 0;
 
     ret_val = SYS$CRELNM(NULL, &proc_table_dsc, &logname_dsc, NULL, item_list);
 
@@ -377,11 +379,10 @@ static void set_coe ( void )
 
     /* Increase pipe buffer size to 8KB. NOTE: This line was previously
      * commented out because of the use of a custom pipe() implementation
-     * for GNV ports (vms_vm_pipe.c). For Regina, the system pipe() should
+     * by GNV ports (vms_vm_pipe.c). For Regina, the system pipe() should
      * be efficient enough, and uses fewer resources than vms_vm_pipe.c.
      */
     set_feature_default("DECC$PIPE_BUFFER_SIZE"	, 8192);
-
 
     /* Rather than remove this completely, a comment is left here to warn
      * someone from putting this bug back in.

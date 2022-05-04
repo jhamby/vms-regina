@@ -43,6 +43,8 @@
 #include <psldef.h>
 #include <libdef.h>
 #include <libdtdef.h>
+#include <efndef.h>
+#include <iledef.h>
 #include <iosbdef.h>
 #include <lib$routines.h>
 #include <gen64def.h>
@@ -323,7 +325,7 @@ struct item_list {
 #define TYP_BOOL   3    /* 4 byte boolean integer */
 #define TYP_LSTR   4    /* 64 byte character string */
 #define TYP_4STR   5    /* 4 byte character string */
-#define TYP_VEC    6    /* 4 byte unsigned integer */
+#define TYP_UINT   6    /* 4 byte unsigned integer */
 #define TYP_INT    7    /* 4 byte signed integer */
 #define TYP_UIC    8    /* 4 byte user identification code */
 #define TYP_SSTR   9    /* 12 byte character string */
@@ -334,10 +336,13 @@ struct item_list {
 #define TYP_MODE  14
 #define TYP_SCHT  15
 #define TYP_DTIM  16
-#define TYP_MSTR  17
-#define TYP_FLAG  18
-#define TYP_TRNM  19
-#define TYP_BSTR  20  /* Binary string, don't strip away ASCII zeros */
+#define TYP_FLAG  17
+#define TYP_TRNM  18
+#define TYP_BSTR  19    /* Binary string, don't strip away ASCII zeros */
+#define TYP_UI64  20    /* 8 byte unsigned integer */
+#define TYP_I64   21    /* 8 byte signed integer */
+#define TYP_CASE  22    /* 4 byte case sensitivity flag */
+#define TYP_STYL  23    /* 4 byte parse style flag */
 
 #define TYP_EXST   1 + 128  /* DVI$_EXISTS */
 #define TYP_SPLD   2 + 128  /* force primary characteristics DVI$_DEVNAM */
@@ -361,10 +366,17 @@ static streng *format_result( const tsd_t *TSD, const int type, const char *buff
    switch (type)
    {
       case TYP_INT:
-      case TYP_VEC:
+      case TYP_UINT:
          result = Str_makeTSD( 12 ) ;
-/*       snprintf( result->value, 12, ((type==TYP_INT) ? "%d" : "%u"), *iptr ) ; */
-         snprintf( result->value, 12, "%d", *iptr ) ;  /* DCL-bug */
+         snprintf( result->value, 12, ((type==TYP_INT) ? "%d" : "%u"), *iptr ) ;
+         result->len = strlen( result->value ) ;
+         assert( result->len < result->max ) ;
+         break ;
+
+      case TYP_I64:
+      case TYP_UI64:
+         result = Str_makeTSD( 22 ) ;
+         snprintf( result->value, 22, ((type==TYP_I64) ? "%lld" : "%llu"), *iptr ) ;
          result->len = strlen( result->value ) ;
          assert( result->len < result->max ) ;
          break ;
@@ -462,10 +474,17 @@ static streng *format_result( const tsd_t *TSD, const int type, const char *buff
          result = Str_creTSD( (*iptr) ? "TRUE" : "FALSE" ) ;
          break ;
 
+      case TYP_CASE:
+         result = Str_creTSD( (*iptr) ? "SENSITIVE" : "BLIND" ) ;
+         break ;
+
+      case TYP_STYL:
+         result = Str_creTSD( (*iptr) ? "EXTENDED" : "TRADITIONAL" ) ;
+         break ;
+
       case TYP_LSTR:
       case TYP_SSTR:
       case TYP_4STR:
-      case TYP_MSTR:
          for (;length && buffer[length-1]==0x00; length--) ;
       case TYP_BSTR:
       {
@@ -580,145 +599,243 @@ streng *vms_f_file_attributes( tsd_t *TSD, cparamboxptr parms )
 
 struct dvi_items_type dvi_items[] =
 {
-   { TYP_HEX,   "ACPPID",         DVI$_ACPPID          },
-   { TYP_ACP,   "ACPTYPE",        DVI$_ACPTYPE         },
-   { TYP_BOOL,  "ALL",            DVI$_ALL             },
-   { TYP_LSTR,  "ALLDEVNAM",      DVI$_ALLDEVNAM       },
-   { TYP_INT,   "ALLOCLASS",      DVI$_ALLOCLASS       },
-   { TYP_BOOL,  "ALT_HOST_AVAIL", DVI$_ALT_HOST_AVAIL  },
-   { TYP_LSTR,  "ALT_HOST_NAME",  DVI$_ALT_HOST_NAME   },
-   { TYP_4STR,  "ALT_HOST_TYPE",  DVI$_ALT_HOST_TYPE   },
-   { TYP_BOOL,  "AVL",            DVI$_AVL             },
-   { TYP_BOOL,  "CCL",            DVI$_CCL             },
-   { TYP_INT,   "CLUSTER",        DVI$_CLUSTER         },
-   { TYP_BOOL,  "CONCEALED",      DVI$_CONCEALED       }, /* undoc'ed */
-   { TYP_INT,   "CYLINDERS",      DVI$_CYLINDERS       },
-   { TYP_INT,   "DEVBUFSIZ",      DVI$_DEVBUFSIZ       },
-   { TYP_VEC,   "DEVCHAR",        DVI$_DEVCHAR         },
-   { TYP_VEC,   "DEVCHAR2",       DVI$_DEVCHAR2        },
-   { TYP_INT,   "DEVCLASS",       DVI$_DEVCLASS        },
-   { TYP_VEC,   "DEVDEPEND",      DVI$_DEVDEPEND       },
-   { TYP_VEC,   "DEVDEPEND2",     DVI$_DEVDEPEND2      },
-   { TYP_LHEX,  "DEVLOCKNAM",     DVI$_DEVLOCKNAM      },
-   { TYP_LSTR,  "DEVNAM",         DVI$_DEVNAM          },
-   { TYP_VEC,   "DEVSTS",         DVI$_DEVSTS          },
-   { TYP_INT,   "DEVTYPE",        DVI$_DEVTYPE         },
-   { TYP_BOOL,  "DIR",            DVI$_DIR             },
+   { TYP_BOOL,  "ACCESSTIMES_RECORDED", DVI$_ACCESSTIMES_RECORDED   },
+   { TYP_HEX,   "ACPPID",               DVI$_ACPPID                 },
+   { TYP_ACP,   "ACPTYPE",              DVI$_ACPTYPE                },
+   { TYP_LSTR,  "ADAPTER_IDENT",        DVI$_ADAPTER_IDENT          },
+   { TYP_BOOL,  "ALL",                  DVI$_ALL                    },
+   { TYP_LSTR,  "ALLDEVNAM",            DVI$_ALLDEVNAM              },
+   { TYP_UINT,  "ALLOCLASS",            DVI$_ALLOCLASS              },
+   { TYP_BOOL,  "ALT_HOST_AVAIL",       DVI$_ALT_HOST_AVAIL         },
+   { TYP_LSTR,  "ALT_HOST_NAME",        DVI$_ALT_HOST_NAME          },
+   { TYP_4STR,  "ALT_HOST_TYPE",        DVI$_ALT_HOST_TYPE          },
+   { TYP_UINT,  "AVAILABLE_PATH_COUNT", DVI$_AVAILABLE_PATH_COUNT   },
+   { TYP_BOOL,  "AVL",                  DVI$_AVL                    },
+   { TYP_BOOL,  "CCL",                  DVI$_CCL                    },
+   { TYP_UINT,  "CLUSTER",              DVI$_CLUSTER                },
+   { TYP_BOOL,  "CONCEALED",            DVI$_CONCEALED      }, /* undoc'ed */
+   { TYP_UINT,  "CYLINDERS",            DVI$_CYLINDERS              },
+   { TYP_UINT,  "DEVBUFSIZ",            DVI$_DEVBUFSIZ              },
+   { TYP_UINT,  "DEVCHAR",              DVI$_DEVCHAR                },
+   { TYP_UINT,  "DEVCHAR2",             DVI$_DEVCHAR2               },
+   { TYP_UINT,  "DEVCLASS",             DVI$_DEVCLASS               },
+   { TYP_UINT,  "DEVDEPEND",            DVI$_DEVDEPEND              },
+   { TYP_UINT,  "DEVDEPEND2",           DVI$_DEVDEPEND2             },
+   { TYP_UINT,  "DEVICE_MAX_IO_SIZE",   DVI$_DEVICE_MAX_IO_SIZE     },
+   { TYP_LSTR,  "DEVICE_TYPE_NAME",     DVI$_DEVICE_TYPE_NAME       },
+   { TYP_LSTR,  "DEVLOCKNAM",           DVI$_DEVLOCKNAM             },
+   { TYP_LSTR,  "DEVNAM",               DVI$_DEVNAM                 },
+   { TYP_UINT,  "DEVSTS",               DVI$_DEVSTS                 },
+   { TYP_UINT,  "DEVTYPE",              DVI$_DEVTYPE                },
+   { TYP_BOOL,  "DFS_ACCESS",           DVI$_DFS_ACCESS             },
+   { TYP_BOOL,  "DIR",                  DVI$_DIR                    },
  /*  DVI$_DISPLAY_DEVNAM refered to in SS, not in LexFuncs */
-   { TYP_BOOL,  "DMT",            DVI$_DMT             },
-   { TYP_BOOL,  "DUA",            DVI$_DUA             },
-   { TYP_BOOL,  "ELG",            DVI$_ELG             },
-   { TYP_INT,   "ERRCNT",         DVI$_ERRCNT          },
-   { TYP_EXST,  "EXISTS",         DVI$_DIR             },
-   { TYP_BOOL,  "FOD",            DVI$_FOD             },
-   { TYP_BOOL,  "FOR",            DVI$_FOR             },
-   { TYP_INT,   "FREEBLOCKS",     DVI$_FREEBLOCKS      },
-   { TYP_LSTR,  "FULLDEVNAM",     DVI$_FULLDEVNAM      },
-   { TYP_BOOL,  "GEN",            DVI$_GEN             },
-   { TYP_BOOL,  "HOST_AVAIL",     DVI$_HOST_AVAIL      },
-   { TYP_INT,   "HOST_COUNT",     DVI$_HOST_COUNT      },
-   { TYP_LSTR,  "HOST_NAME",      DVI$_HOST_NAME       },
-   { TYP_4STR,  "HOST_TYPE",      DVI$_HOST_TYPE       },
-   { TYP_BOOL,  "IDV",            DVI$_IDV             },
-   { TYP_HEX,   "LOCKID",         DVI$_LOCKID          },
-   { TYP_LSTR,  "LOGVOLNAM",      DVI$_LOGVOLNAM       },
-   { TYP_INT,   "MAXBLOCK",       DVI$_MAXBLOCK        },
-   { TYP_INT,   "MAXFILES",       DVI$_MAXFILES        },
-   { TYP_BOOL,  "MBX",            DVI$_MBX             },
-   { TYP_VEC,   "MEDIA_ID",       DVI$_MEDIA_ID        },
-   { TYP_LSTR , "MEDIA_NAME",     DVI$_MEDIA_NAME      },
-   { TYP_LSTR , "MEDIA_TYPE",     DVI$_MEDIA_TYPE      },
-   { TYP_BOOL,  "MNT",            DVI$_MNT             },
-   { TYP_INT,   "MOUNTCNT",       DVI$_MOUNTCNT        },
- /*  DVI$_MSCP_UNIT_NUMBER refered to in SS, not in LexFuncs */
-   { TYP_BOOL,  "NET",            DVI$_NET             },
-   { TYP_LSTR , "NEXTDEVNAM",     DVI$_NEXTDEVNAM      },
-   { TYP_BOOL,  "ODV",            DVI$_ODV             },
-   { TYP_INT,   "OPCNT",          DVI$_OPCNT           },
-   { TYP_BOOL,  "OPR",            DVI$_OPR             },
-   { TYP_UIC,   "OWNUIC",         DVI$_OWNUIC          },
-   { TYP_HEX,   "PID",            DVI$_PID             },
-   { TYP_BOOL,  "RCK",            DVI$_RCK             },
-   { TYP_BOOL,  "RCT",            DVI$_RCT             },
-   { TYP_BOOL,  "REC",            DVI$_REC             },
-   { TYP_INT,   "RECSIZ",         DVI$_RECSIZ          },
-   { TYP_INT,   "REFCNT",         DVI$_REFCNT          },
-   { TYP_BOOL,  "REMOTE_DEVICE",  DVI$_REMOTE_DEVICE   },
-   { TYP_BOOL,  "RND",            DVI$_RND             },
-   { TYP_LSTR,  "ROOTDEVNAM",     DVI$_ROOTDEVNAM      },
-   { TYP_BOOL,  "RTM",            DVI$_RTM             },
-   { TYP_BOOL,  "SDI",            DVI$_SDI             },
-   { TYP_INT,   "SECTORS",        DVI$_SECTORS         },
-   { TYP_VEC,   "SERIALNUM",      DVI$_SERIALNUM       },
-   { TYP_BOOL,  "SERVED_DEVICE",  DVI$_SERVED_DEVICE   },
-   { TYP_BOOL,  "SHR",            DVI$_SHR             },
-   { TYP_BOOL,  "SPL",            DVI$_SPL             },
-   { TYP_SPLD,  "SPLDEVNAM",      DVI$_DEVNAM          },
-   { TYP_BOOL,  "SQD",            DVI$_SQD             },
-   { TYP_VEC,   "STS",            DVI$_STS             },
-   { TYP_BOOL,  "SWL",            DVI$_SWL             },
-   { TYP_INT,   "TRACKS",         DVI$_TRACKS          },
-   { TYP_INT,   "TRANSCNT",       DVI$_TRANSCNT        },
-   { TYP_BOOL,  "TRM",            DVI$_TRM             },
-   { TYP_LSTR,  "TT_ACCPORNAM",   DVI$_TT_ACCPORNAM    },
-   { TYP_BOOL,  "TT_ALTYPEAHD",   DVI$_TT_ALTYPEAHD    },
-   { TYP_BOOL,  "TT_ANSICRT",     DVI$_TT_ANSICRT      },
-   { TYP_BOOL,  "TT_APP_KEYPAD",  DVI$_TT_APP_KEYPAD   },
-   { TYP_BOOL,  "TT_AUTOBAUD",    DVI$_TT_AUTOBAUD     },
-   { TYP_BOOL,  "TT_AVO",         DVI$_TT_AVO          },
-   { TYP_BOOL,  "TT_BLOCK",       DVI$_TT_BLOCK        },
-   { TYP_BOOL,  "TT_BRDCSTMBX",   DVI$_TT_BRDCSTMBX    },
-   { TYP_BOOL,  "TT_CRFILL",      DVI$_TT_CRFILL       },
-   { TYP_BOOL,  "TT_DECCRT",      DVI$_TT_DECCRT       },
-   { TYP_BOOL,  "TT_DECCRT2",     DVI$_TT_DECCRT2      },
-   { TYP_BOOL,  "TT_DIALUP",      DVI$_TT_DIALUP       },
-   { TYP_BOOL,  "TT_DISCONNECT",  DVI$_TT_DISCONNECT   },
-   { TYP_BOOL,  "TT_DMA",         DVI$_TT_DMA          },
-   { TYP_BOOL,  "TT_DRCS",        DVI$_TT_DRCS         },
-   { TYP_BOOL,  "TT_EDIT",        DVI$_TT_EDIT         },
-   { TYP_BOOL,  "TT_EDITING",     DVI$_TT_EDITING      },
-   { TYP_BOOL,  "TT_EIGHTBIT",    DVI$_TT_EIGHTBIT     },
-   { TYP_BOOL,  "TT_ESCAPE",      DVI$_TT_ESCAPE       },
-   { TYP_BOOL,  "TT_FALLBACK",    DVI$_TT_FALLBACK     },
-   { TYP_BOOL,  "TT_HALFDUP",     DVI$_TT_HALFDUP      },
-   { TYP_BOOL,  "TT_HANGUP",      DVI$_TT_HANGUP       },
-   { TYP_BOOL,  "TT_HOSTSYNC",    DVI$_TT_HOSTSYNC     },
-   { TYP_BOOL,  "TT_INSERT",      DVI$_TT_INSERT       },
-   { TYP_BOOL,  "TT_LFFILL",      DVI$_TT_LFFILL       },
-   { TYP_BOOL,  "TT_LOCALECHO",   DVI$_TT_LOCALECHO    },
-   { TYP_BOOL,  "TT_LOWER",       DVI$_TT_LOWER        },
-   { TYP_BOOL,  "TT_MBXDSABL",    DVI$_TT_MBXDSABL     },
-   { TYP_BOOL,  "TT_MECHFORM",    DVI$_TT_MECHFORM     },
-   { TYP_BOOL,  "TT_MECHTAB",     DVI$_TT_MECHTAB      },
-   { TYP_BOOL,  "TT_MODEM",       DVI$_TT_MODEM        },
-   { TYP_BOOL,  "TT_MODHANGUP",   DVI$_TT_MODHANGUP    },
-   { TYP_BOOL,  "TT_NOBRDCST",    DVI$_TT_NOBRDCST     },
-   { TYP_BOOL,  "TT_NOECHO",      DVI$_TT_NOECHO       },
-   { TYP_BOOL,  "TT_NOTYPEAHD",   DVI$_TT_NOTYPEAHD    },
-   { TYP_BOOL,  "TT_OPER",        DVI$_TT_OPER         },
-   { TYP_INT,   "TT_PAGE",        DVI$_TT_PAGE         },
-   { TYP_BOOL,  "TT_PASTHRU",     DVI$_TT_PASTHRU      },
-   { TYP_LSTR,  "TT_PHYDEVNAM",   DVI$_TT_PHYDEVNAM    },
-   { TYP_BOOL,  "TT_PRINTER",     DVI$_TT_PRINTER      },
-   { TYP_BOOL,  "TT_READSYNC",    DVI$_TT_READSYNC     },
-   { TYP_BOOL,  "TT_REGIS",       DVI$_TT_REGIS        },
-   { TYP_BOOL,  "TT_REMOTE",      DVI$_TT_REMOTE       },
-   { TYP_BOOL,  "TT_SCOPE",       DVI$_TT_SCOPE        },
-   { TYP_BOOL,  "TT_SECURE",      DVI$_TT_SECURE       },
-   { TYP_BOOL,  "TT_SETSPEED",    DVI$_TT_SETSPEED     },
-   { TYP_BOOL,  "TT_SIXEL",       DVI$_TT_SIXEL        },
-   { TYP_BOOL,  "TT_SYSPWD",      DVI$_TT_SYSPWD       },
-   { TYP_BOOL,  "TT_TTSYNC",      DVI$_TT_TTSYNC       },
-   { TYP_BOOL,  "TT_WRAP",        DVI$_TT_WRAP         },
-   { TYP_INT,   "UNIT",           DVI$_UNIT            },
-   { TYP_INT,   "VOLCOUNT",       DVI$_VOLCOUNT        },
-   { TYP_SSTR,  "VOLNAM",         DVI$_VOLNAM          },
-   { TYP_INT,   "VOLNUMBER",      DVI$_VOLNUMBER       },
-   { TYP_BOOL,  "VOLSETMEM",      DVI$_VOLSETMEM       },
-   { TYP_PROT,  "VPROT",          DVI$_VPROT           },
-   { TYP_BOOL,  "WCK",            DVI$_WCK             },
+   { TYP_BOOL,  "DMT",                  DVI$_DMT                    },
+   { TYP_BOOL,  "DUA",                  DVI$_DUA                    },
+   { TYP_BOOL,  "ELG",                  DVI$_ELG                    },
+   { TYP_BOOL,  "ERASE_ON_DELETE",      DVI$_ERASE_ON_DELETE        },
+   { TYP_UINT,  "ERRCNT",               DVI$_ERRCNT                 },
+   { TYP_TIME,  "ERROR_RESET_TIME",     DVI$_ERROR_RESET_TIME       },
+   { TYP_EXST,  "EXISTS",               DVI$_DIR                    },
+   { TYP_UINT,  "EXPSIZE",              DVI$_EXPSIZE                },
+   { TYP_LSTR,  "FC_HBA_FIRMWARE_REV",  DVI$_FC_HBA_FIRMWARE_REV    },
+   { TYP_LSTR,  "FC_NODE_NAME",         DVI$_FC_NODE_NAME           },
+   { TYP_LSTR,  "FC_PORT_NAME",         DVI$_FC_PORT_NAME           },
+   { TYP_BOOL,  "FOD",                  DVI$_FOD                    },
+   { TYP_BOOL,  "FOR",                  DVI$_FOR                    },
+   { TYP_UINT,  "FREEBLOCKS",           DVI$_FREEBLOCKS             },
+   { TYP_LSTR,  "FULLDEVNAM",           DVI$_FULLDEVNAM             },
+   { TYP_BOOL,  "GEN",                  DVI$_GEN                    },
+   { TYP_BOOL,  "HARDLINKS_SUPPORTED",  DVI$_HARDLINKS_SUPPORTED    },
+   { TYP_BOOL,  "HOST_AVAIL",           DVI$_HOST_AVAIL             },
+   { TYP_UINT,  "HOST_COUNT",           DVI$_HOST_COUNT             },
+   { TYP_LSTR,  "HOST_NAME",            DVI$_HOST_NAME              },
+   { TYP_4STR,  "HOST_TYPE",            DVI$_HOST_TYPE              },
+   { TYP_BOOL,  "IDV",                  DVI$_IDV                    },
+   { TYP_BOOL,  "LAN_ALL_MULTICAST_MODE",   DVI$_LAN_ALL_MULTICAST_MODE     },
+   { TYP_BOOL,  "LAN_AUTONEG_ENABLED",      DVI$_LAN_AUTONEG_ENABLED        },
+   { TYP_LSTR,  "LAN_DEFAULT_MAC_ADDRESS",  DVI$_LAN_DEFAULT_MAC_ADDRESS    },
+   { TYP_BOOL,  "LAN_FULL_DUPLEX",          DVI$_LAN_FULL_DUPLEX            },
+   { TYP_BOOL,  "LAN_JUMBO_FRAMES_ENABLED", DVI$_LAN_JUMBO_FRAMES_ENABLED   },
+   { TYP_BOOL,  "LAN_LINK_STATE_VALID",     DVI$_LAN_LINK_STATE_VALID       },
+   { TYP_BOOL,  "LAN_LINK_UP",              DVI$_LAN_LINK_UP                },
+   { TYP_LSTR,  "LAN_MAC_ADDRESS",          DVI$_LAN_MAC_ADDRESS            },
+   { TYP_BOOL,  "LAN_PROMISCUOUS_MODE",     DVI$_LAN_PROMISCUOUS_MODE       },
+   { TYP_LSTR,  "LAN_PROTOCOL_NAME",        DVI$_LAN_PROTOCOL_NAME          },
+   { TYP_LSTR,  "LAN_PROTOCOL_TYPE",        DVI$_LAN_PROTOCOL_TYPE          },
+   { TYP_UINT,  "LAN_SPEED",                DVI$_LAN_SPEED                  },
+   { TYP_UINT,  "LOCKID",                   DVI$_LOCKID                     },
+   { TYP_LSTR,  "LOGVOLNAM",                DVI$_LOGVOLNAM                  },
+   { TYP_UINT,  "MAILBOX_BUFFER_QUOTA",     DVI$_MAILBOX_BUFFER_QUOTA       },
+   { TYP_UINT,  "MAILBOX_INITIAL_QUOTA",    DVI$_MAILBOX_INITIAL_QUOTA      },
+   { TYP_UINT,  "MAXBLOCK",                 DVI$_MAXBLOCK                   },
+   { TYP_UINT,  "MAXFILES",                 DVI$_MAXFILES                   },
+   { TYP_BOOL,  "MBX",                      DVI$_MBX                        },
+   { TYP_UINT,  "MEDIA_ID",                 DVI$_MEDIA_ID                   },
+   { TYP_LSTR , "MEDIA_NAME",               DVI$_MEDIA_NAME                 },
+   { TYP_LSTR , "MEDIA_TYPE",               DVI$_MEDIA_TYPE                 },
+   { TYP_TIME , "MOUNT_TIME",               DVI$_MOUNT_TIME                 },
+   { TYP_BOOL,  "MNT",                      DVI$_MNT                        },
+   { TYP_UINT,  "MOUNTCNT",                 DVI$_MOUNTCNT                   },
+   { TYP_UINT,  "MOUNTCNT_CLUSTER",         DVI$_MOUNTCNT_CLUSTER           },
+   { TYP_BOOL,  "MOUNTVER_ELIGIBLE",        DVI$_MOUNTVER_ELIGIBLE          },
+   { TYP_UINT,  "MPDEV_AUTO_PATH_SW_CNT",   DVI$_MPDEV_AUTO_PATH_SW_CNT     },
+   { TYP_LSTR,  "MPDEV_CURRENT_PATH",       DVI$_MPDEV_CURRENT_PATH         },
+   { TYP_UINT,  "MPDEV_MAN_PATH_SW_CNT",    DVI$_MPDEV_MAN_PATH_SW_CNT      },
+   { TYP_UINT,  "MT3_DENSITY",              DVI$_MT3_DENSITY                },
+   { TYP_BOOL,  "MT3_SUPPORTED",            DVI$_MT3_SUPPORTED              },
+   { TYP_BOOL,  "MULTIPATH",                DVI$_MULTIPATH                  },
+   { TYP_BOOL,  "MVSUPMSG",                 DVI$_MVSUPMSG                   },
+   { TYP_BOOL,  "NET",                      DVI$_NET                        },
+   { TYP_LSTR,  "NEXTDEVNAM",               DVI$_NEXTDEVNAM                 },
+   { TYP_BOOL,  "NOCACHE_ON_VOLUME",        DVI$_NOCACHE_ON_VOLUME          },
+   { TYP_BOOL,  "NOHIGHWATER",              DVI$_NOHIGHWATER                },
+   { TYP_BOOL,  "NOSHARE_MOUNTED",          DVI$_NOSHARE_MOUNTED            },
+   { TYP_BOOL,  "NOXFCCACHE_ON_VOLUME",     DVI$_NOXFCCACHE_ON_VOLUME       },
+   { TYP_BOOL,  "ODS2_SUBSET0",             DVI$_ODS2_SUBSET0               },
+   { TYP_BOOL,  "ODS5",                     DVI$_ODS5                       },
+   { TYP_BOOL,  "ODV",                      DVI$_ODV                        },
+   { TYP_UINT,  "OPCNT",                    DVI$_OPCNT                      },
+   { TYP_BOOL,  "OPR",                      DVI$_OPR                        },
+   { TYP_UIC,   "OWNUIC",                   DVI$_OWNUIC                     },
+   { TYP_BOOL,  "PATH_AVAILABLE",           DVI$_PATH_AVAILABLE             },
+   { TYP_BOOL,  "PATH_NOT_RESPONDING",      DVI$_PATH_NOT_RESPONDING        },
+   { TYP_BOOL,  "PATH_POLL_ENABLED",        DVI$_PATH_POLL_ENABLED          },
+   { TYP_TIME,  "PATH_SWITCH_FROM_TIME",    DVI$_PATH_SWITCH_FROM_TIME      },
+   { TYP_TIME,  "PATH_SWITCH_TO_TIME",      DVI$_PATH_SWITCH_TO_TIME        },
+   { TYP_BOOL,  "PATH_USER_DISABLED",       DVI$_PATH_USER_DISABLED         },
+   { TYP_HEX,   "PID",                      DVI$_PID                        },
+   { TYP_I64,   "PREFERRED_CPU",            DVI$_PREFERRED_CPU              },
+   { TYP_BOOL,  "PROT_SUBSYSTEM_ENABLED",   DVI$_PROT_SUBSYSTEM_ENABLED     },
+   { TYP_UINT,  "QLEN",                     DVI$_QLEN                       },
+   { TYP_BOOL,  "RCK",                      DVI$_RCK                        },
+   { TYP_BOOL,  "RCT",                      DVI$_RCT                        },
+   { TYP_BOOL,  "REC",                      DVI$_REC                        },
+   { TYP_UINT,  "RECSIZ",                   DVI$_RECSIZ                     },
+   { TYP_UINT,  "REFCNT",                   DVI$_REFCNT                     },
+   { TYP_BOOL,  "REMOTE_DEVICE",            DVI$_REMOTE_DEVICE              },
+   { TYP_BOOL,  "RND",                      DVI$_RND                        },
+   { TYP_LSTR,  "ROOTDEVNAM",               DVI$_ROOTDEVNAM                 },
+   { TYP_BOOL,  "RTM",                      DVI$_RTM                        },
+   { TYP_4STR,  "SCSI_DEVICE_FIRMWARE_REV", DVI$_SCSI_DEVICE_FIRMWARE_REV   },
+   { TYP_BOOL,  "SDI",                      DVI$_SDI                        },
+   { TYP_UINT,  "SECTORS",                  DVI$_SECTORS                    },
+   { TYP_UINT,  "SERIALNUM",                DVI$_SERIALNUM                  },
+   { TYP_BOOL,  "SERVED_DEVICE",            DVI$_SERVED_DEVICE              },
+   { TYP_BOOL,  "SET_HOST_TERMINAL",        DVI$_SET_HOST_TERMINAL          },
+   { TYP_BOOL,  "SHDW_CATCHUP_COPYING",     DVI$_SHDW_CATCHUP_COPYING       },
+   { TYP_LSTR,  "SHDW_COPIER_NODE",         DVI$_SHDW_COPIER_NODE           },
+   { TYP_UINT,  "SHDW_DEVICE_COUNT",        DVI$_SHDW_DEVICE_COUNT          },
+   { TYP_BOOL,  "SHDW_FAILED_MEMBER",       DVI$_SHDW_FAILED_MEMBER         },
+   { TYP_I64,   "SHDW_GENERATION",          DVI$_SHDW_GENERATION            },
+   { TYP_BOOL,  "SHDW_MASTER",              DVI$_SHDW_MASTER                },
+   { TYP_LSTR,  "SHDW_MASTER_MBR",          DVI$_SHDW_MASTER_MBR            },
+   { TYP_LSTR,  "SHDW_MASTER_NAME",         DVI$_SHDW_MASTER_NAME           },
+   { TYP_UINT,  "SHDW_MBR_COPY_DONE",       DVI$_SHDW_MBR_COPY_DONE         },
+   { TYP_UINT,  "SHDW_MBR_COUNT",           DVI$_SHDW_MBR_COUNT             },
+   { TYP_UINT,  "SHDW_MBR_MERGE_DONE",      DVI$_SHDW_MBR_MERGE_DONE        },
+   { TYP_UINT,  "SHDW_MBR_READ_COST",       DVI$_SHDW_MBR_READ_COST         },
+   { TYP_BOOL,  "SHDW_MEMBER",              DVI$_SHDW_MEMBER                },
+   { TYP_BOOL,  "SHDW_MERGE_COPYING",       DVI$_SHDW_MERGE_COPYING         },
+   { TYP_BOOL,  "SHDW_MINIMERGE_ENABLE",    DVI$_SHDW_MINIMERGE_ENABLE      },
+   { TYP_LSTR,  "SHDW_NEXT_MBR_NAME",       DVI$_SHDW_NEXT_MBR_NAME         },
+   { TYP_LSTR,  "SHDW_READ_SOURCE",         DVI$_SHDW_READ_SOURCE           },
+   { TYP_UINT,  "SHDW_SITE",                DVI$_SHDW_SITE                  },
+   { TYP_UINT,  "SHDW_TIMEOUT",             DVI$_SHDW_TIMEOUT               },
+   { TYP_BOOL,  "SHR",                      DVI$_SHR                        },
+   { TYP_BOOL,  "SPECIAL_FILES",            DVI$_SPECIAL_FILES              },
+   { TYP_BOOL,  "SPL",                      DVI$_SPL                        },
+   { TYP_SPLD,  "SPLDEVNAM",                DVI$_DEVNAM                     },
+   { TYP_BOOL,  "SQD",                      DVI$_SQD                        },
+   { TYP_INT,   "SSD_LIFE_REMAINING",       DVI$_SSD_LIFE_REMAINING         },
+   { TYP_INT,   "SSD_USAGE_REMAINING",      DVI$_SSD_USAGE_REMAINING        },
+   { TYP_UINT,  "STS",                      DVI$_STS                        },
+   { TYP_BOOL,  "SWL",                      DVI$_SWL                        },
+   { TYP_UINT,  "TOTAL_PATH_COUNT",         DVI$_TOTAL_PATH_COUNT           },
+   { TYP_UINT,  "TRACKS",           DVI$_TRACKS         },
+   { TYP_UINT,  "TRANSCNT",         DVI$_TRANSCNT       },
+   { TYP_BOOL,  "TRM",              DVI$_TRM            },
+   { TYP_LSTR,  "TT_ACCPORNAM",     DVI$_TT_ACCPORNAM   },
+   { TYP_BOOL,  "TT_ALTYPEAHD",     DVI$_TT_ALTYPEAHD   },
+   { TYP_BOOL,  "TT_ANSICRT",       DVI$_TT_ANSICRT     },
+   { TYP_BOOL,  "TT_APP_KEYPAD",    DVI$_TT_APP_KEYPAD  },
+   { TYP_BOOL,  "TT_AUTOBAUD",      DVI$_TT_AUTOBAUD    },
+   { TYP_BOOL,  "TT_AVO",           DVI$_TT_AVO         },
+   { TYP_BOOL,  "TT_BLOCK",         DVI$_TT_BLOCK       },
+   { TYP_BOOL,  "TT_BRDCSTMBX",     DVI$_TT_BRDCSTMBX   },
+   { TYP_UINT,  "TT_CHARSET",       DVI$_TT_CHARSET     },
+   { TYP_BOOL,  "TT_CRFILL",        DVI$_TT_CRFILL      },
+   { TYP_BOOL,  "TT_CRFILL",        DVI$_TT_CRFILL      },
+   { TYP_BOOL,  "TT_CS_HANGUL",     DVI$_TT_CS_HANGUL   },
+   { TYP_BOOL,  "TT_CS_HANYU",      DVI$_TT_CS_HANYU    },
+   { TYP_BOOL,  "TT_CS_HANZI",      DVI$_TT_CS_HANZI    },
+   { TYP_BOOL,  "TT_CS_KANA",       DVI$_TT_CS_KANA     },
+   { TYP_BOOL,  "TT_CS_KANJI",      DVI$_TT_CS_KANJI    },
+   { TYP_BOOL,  "TT_CS_THAI",       DVI$_TT_CS_THAI     },
+   { TYP_BOOL,  "TT_DECCRT",        DVI$_TT_DECCRT      },
+   { TYP_BOOL,  "TT_DECCRT2",       DVI$_TT_DECCRT2     },
+   { TYP_BOOL,  "TT_DECCRT3",       DVI$_TT_DECCRT2     },
+   { TYP_BOOL,  "TT_DECCRT4",       DVI$_TT_DECCRT2     },
+   { TYP_BOOL,  "TT_DECCRT5",       DVI$_TT_DECCRT2     },
+   { TYP_BOOL,  "TT_DIALUP",        DVI$_TT_DIALUP      },
+   { TYP_BOOL,  "TT_DISCONNECT",    DVI$_TT_DISCONNECT  },
+   { TYP_BOOL,  "TT_DMA",           DVI$_TT_DMA         },
+   { TYP_BOOL,  "TT_DRCS",          DVI$_TT_DRCS        },
+   { TYP_BOOL,  "TT_EDIT",          DVI$_TT_EDIT        },
+   { TYP_BOOL,  "TT_EDITING",       DVI$_TT_EDITING     },
+   { TYP_BOOL,  "TT_EIGHTBIT",      DVI$_TT_EIGHTBIT    },
+   { TYP_BOOL,  "TT_ESCAPE",        DVI$_TT_ESCAPE      },
+   { TYP_BOOL,  "TT_FALLBACK",      DVI$_TT_FALLBACK    },
+   { TYP_BOOL,  "TT_HALFDUP",       DVI$_TT_HALFDUP     },
+   { TYP_BOOL,  "TT_HANGUP",        DVI$_TT_HANGUP      },
+   { TYP_BOOL,  "TT_HOSTSYNC",      DVI$_TT_HOSTSYNC    },
+   { TYP_BOOL,  "TT_INSERT",        DVI$_TT_INSERT      },
+   { TYP_BOOL,  "TT_LFFILL",        DVI$_TT_LFFILL      },
+   { TYP_BOOL,  "TT_LOCALECHO",     DVI$_TT_LOCALECHO   },
+   { TYP_BOOL,  "TT_LOWER",         DVI$_TT_LOWER       },
+   { TYP_BOOL,  "TT_MBXDSABL",      DVI$_TT_MBXDSABL    },
+   { TYP_BOOL,  "TT_MECHFORM",      DVI$_TT_MECHFORM    },
+   { TYP_BOOL,  "TT_MECHTAB",       DVI$_TT_MECHTAB     },
+   { TYP_BOOL,  "TT_MODEM",         DVI$_TT_MODEM       },
+   { TYP_BOOL,  "TT_MODHANGUP",     DVI$_TT_MODHANGUP   },
+   { TYP_BOOL,  "TT_NOBRDCST",      DVI$_TT_NOBRDCST    },
+   { TYP_BOOL,  "TT_NOECHO",        DVI$_TT_NOECHO      },
+   { TYP_BOOL,  "TT_NOTYPEAHD",     DVI$_TT_NOTYPEAHD   },
+   { TYP_BOOL,  "TT_OPER",          DVI$_TT_OPER        },
+   { TYP_UINT,  "TT_PAGE",          DVI$_TT_PAGE        },
+   { TYP_BOOL,  "TT_PASTHRU",       DVI$_TT_PASTHRU     },
+   { TYP_LSTR,  "TT_PHYDEVNAM",     DVI$_TT_PHYDEVNAM   },
+   { TYP_BOOL,  "TT_PRINTER",       DVI$_TT_PRINTER     },
+   { TYP_BOOL,  "TT_READSYNC",      DVI$_TT_READSYNC    },
+   { TYP_BOOL,  "TT_REGIS",         DVI$_TT_REGIS       },
+   { TYP_BOOL,  "TT_REMOTE",        DVI$_TT_REMOTE      },
+   { TYP_BOOL,  "TT_SCOPE",         DVI$_TT_SCOPE       },
+   { TYP_BOOL,  "TT_SECURE",        DVI$_TT_SECURE      },
+   { TYP_BOOL,  "TT_SETSPEED",      DVI$_TT_SETSPEED    },
+   { TYP_BOOL,  "TT_SIXEL",         DVI$_TT_SIXEL       },
+   { TYP_BOOL,  "TT_SYSPWD",        DVI$_TT_SYSPWD      },
+   { TYP_BOOL,  "TT_TTSYNC",        DVI$_TT_TTSYNC      },
+   { TYP_BOOL,  "TT_WRAP",          DVI$_TT_WRAP        },
+   { TYP_UINT,  "UNIT",             DVI$_UNIT           },
+   { TYP_UINT,  "VOLCOUNT",         DVI$_VOLCOUNT       },
+   { TYP_SSTR,  "VOLNAM",           DVI$_VOLNAM         },
+   { TYP_UINT,  "VOLNUMBER",        DVI$_VOLNUMBER      },
+   { TYP_BOOL,  "VOLSETMEM",        DVI$_VOLSETMEM      },
+   { TYP_UINT,  "VOLSIZE",          DVI$_VOLSIZE        },
+   { TYP_UINT,  "VOLUME_EXTEND_QUANTITY",   DVI$_VOLUME_EXTEND_QUANTITY     },
+   { TYP_BOOL,  "VOLUME_MOUNT_GROUP",       DVI$_VOLUME_MOUNT_GROUP         },
+   { TYP_BOOL,  "VOLUME_MOUNT_SYS",         DVI$_VOLUME_MOUNT_SYS           },
+   { TYP_UINT,  "VOLUME_PENDING_WRITE_ERR", DVI$_VOLUME_PENDING_WRITE_ERR   },
+   { TYP_TIME,  "VOLUME_RETAIN_MAX",        DVI$_VOLUME_RETAIN_MAX          },
+   { TYP_TIME,  "VOLUME_RETAIN_MIN",        DVI$_VOLUME_RETAIN_MIN          },
+   { TYP_UINT,  "VOLUME_SPOOLED_DEV_CNT",   DVI$_VOLUME_SPOOLED_DEV_CNT     },
+   { TYP_UINT,  "VOLUME_WINDOW",            DVI$_VOLUME_WINDOW              },
+   { TYP_PROT,  "VPROT",                    DVI$_VPROT                      },
+   { TYP_BOOL,  "WCK",                      DVI$_WCK                        },
+   { TYP_BOOL,  "WRITETHRU_CACHE_ENABLED",  DVI$_WRITETHRU_CACHE_ENABLED    },
+   { TYP_LSTR,  "WWID",                     DVI$_WWID                       },
+   { TYP_BOOL,  "XFC_DEPOSING",             DVI$_XFC_DEPOSING               },
 } ;
-
 
 
 static struct dvi_items_type *item_info(
@@ -770,11 +887,13 @@ static struct dvi_items_type *item_info(
 
 streng *vms_f_getdvi( tsd_t *TSD, cparamboxptr parms )
 {
-   char buffer1[64], buffer2[64] ;
-   int spooled, slength=4, rc, itemcode, length ;
-   short length1, length2 ;
+   char __align( QUADWORD ) buffer1[64] ;
+   char __align( QUADWORD ) buffer2[64] ;
+   int spooled, rc, itemcode, length ;
+   unsigned short length1, length2, slength=4 ;
    struct dvi_items_type *ptr ;
-   int item[12], type ;
+   int type ;
+   struct _ile3 item[4] ;
    struct dsc$descriptor_s name ;
 
    checkparam( parms, 2, 2, "VMS_F_GETDVI" ) ;
@@ -788,19 +907,24 @@ streng *vms_f_getdvi( tsd_t *TSD, cparamboxptr parms )
    name.dsc$b_class = DSC$K_CLASS_S ;
    name.dsc$a_pointer = parms->value->value ;
 
-   item[0] = 64 + ((ptr->addr) << 16) ;
-   item[1] = (int)buffer1 ;
-   item[2] = (int)&length1 ;
-   item[3] = 64 + ((ptr->addr | DVI$C_SECONDARY) << 16) ;
-   item[4] = (int)buffer2 ;
-   item[5] = (int)&length2 ;
-   item[6] = 4 + ((DVI$_SPL | DVI$C_SECONDARY) << 16) ;
-   item[7] = (int)&spooled ;
-   item[8] = (int)&slength ;
-   item[9] = item[10] = item[11] = 0 ;
+   item[0].ile3$w_length = 64 ;
+   item[0].ile3$w_code = ptr->addr ;
+   item[0].ile3$ps_bufaddr = buffer1 ;
+   item[0].ile3$ps_retlen_addr = &length1 ;
 
+   item[1].ile3$w_length = 64 ;
+   item[1].ile3$w_code = (ptr->addr | DVI$C_SECONDARY) ;
+   item[1].ile3$ps_bufaddr = buffer2 ;
+   item[1].ile3$ps_retlen_addr = &length2 ;
 
-   rc = sys$getdviw( 0, 0, &name, &item, NULL, NULL, 0, NULL ) ;
+   item[2].ile3$w_length = 4 ;
+   item[2].ile3$w_code = (DVI$_SPL | DVI$C_SECONDARY) ;
+   item[2].ile3$ps_bufaddr = &spooled ;
+   item[2].ile3$ps_retlen_addr = &slength ;
+
+   memset( &item[3], 0, sizeof(struct _ile3) ) ;
+
+   rc = sys$getdviw( EFN$C_ENF, 0, &name, &item, NULL, NULL, 0, NULL ) ;
 
    if (ptr->type == TYP_SPLD)
    {
@@ -833,9 +957,9 @@ static const struct dvi_items_type jpi_items[] =
 {
    { TYP_LSTR,  "ACCOUNT",      JPI$_ACCOUNT    },
    { TYP_INT,   "APTCNT",       JPI$_APTCNT     },
-   { TYP_INT,   "ASTACT",       JPI$_ASTACT     },
+   { TYP_UINT,  "ASTACT",       JPI$_ASTACT     },
    { TYP_INT,   "ASTCNT",       JPI$_ASTCNT     },
-   { TYP_INT,   "ASTEN",        JPI$_ASTEN      },
+   { TYP_UINT,  "ASTEN",        JPI$_ASTEN      },
    { TYP_INT,   "ASTLM",        JPI$_ASTLM      },
    { TYP_INT,   "AUTHPRI",      JPI$_AUTHPRI    },
    { TYP_PRIV,  "AUTHPRIV",     JPI$_AUTHPRIV   },
@@ -844,62 +968,101 @@ static const struct dvi_items_type jpi_items[] =
    { TYP_INT,   "BUFIO",        JPI$_BUFIO      },
    { TYP_INT,   "BYTCNT",       JPI$_BYTCNT     },
    { TYP_INT,   "BYTLM",        JPI$_BYTLM      },
+   { TYP_CASE,  "CASE_LOOKUP_IMAGE",JPI$_CASE_LOOKUP_IMAGE  },
+   { TYP_CASE,  "CASE_LOOKUP_PERM", JPI$_CASE_LOOKUP_PERM   },
+   { TYP_LSTR,  "CLASSIFICATION",   JPI$_CLASSIFICATION     },
    { TYP_LSTR,  "CLINAME",      JPI$_CLINAME    },
    { TYP_INT,   "CPULIM",       JPI$_CPULIM     },
    { TYP_INT,   "CPUTIM",       JPI$_CPUTIM     },
+   { TYP_UINT,  "CREPRC_FLAGS", JPI$_CREPRC_FLAGS   },
    { TYP_PRIV,  "CURPRIV",      JPI$_CURPRIV    },
    { TYP_INT,   "DFPFC",        JPI$_DFPFC      },
    { TYP_INT,   "DFWSCNT",      JPI$_DFWSCNT    },
    { TYP_INT,   "DIOCNT",       JPI$_DIOCNT     },
    { TYP_INT,   "DIOLM",        JPI$_DIOLM      },
    { TYP_INT,   "DIRIO",        JPI$_DIRIO      },
-   { TYP_INT,   "EFCS",         JPI$_EFCS       },
-   { TYP_INT,   "EFCU",         JPI$_EFCU       },
-   { TYP_INT,   "EFWM",         JPI$_EFWM       },
+   { TYP_UINT,  "EFCS",         JPI$_EFCS       },
+   { TYP_UINT,  "EFCU",         JPI$_EFCU       },
+   { TYP_UINT,  "EFWM",         JPI$_EFWM       },
    { TYP_INT,   "ENQCNT",       JPI$_ENQCNT     },
    { TYP_INT,   "ENQLM",        JPI$_ENQLM      },
    { TYP_HEX,   "EXCVEC",       JPI$_EXCVEC     },
+   { TYP_INT,   "FAST_VP_SWITCH",   JPI$_FAST_VP_SWITCH     },
    { TYP_INT,   "FILCNT",       JPI$_FILCNT     },
    { TYP_INT,   "FILLM",        JPI$_FILLM      },
    { TYP_HEX,   "FINALEXC",     JPI$_FINALEXC   },
    { TYP_HEX,   "FREP0VA",      JPI$_FREP0VA    },
    { TYP_HEX,   "FREP1VA",      JPI$_FREP1VA    },
-   { TYP_INT,   "FREPTECNT",    JPI$_FREPTECNT  },
+   { TYP_I64,   "FREPTECNT",    JPI$_FREPTECNT  },
    { TYP_INT,   "GPGCNT",       JPI$_GPGCNT     },
    { TYP_INT,   "GRP",          JPI$_GRP        },
+   { TYP_INT,   "HOME_RAD",     JPI$_HOME_RAD   },
    { TYP_INT,   "IMAGECOUNT",   JPI$_IMAGECOUNT },
+   { TYP_PRIV,  "IMAGE_AUTHPRIV",   JPI$_IMAGE_AUTHPRIV     },
+   { TYP_PRIV,  "IMAGE_PERMPRIV",   JPI$_IMAGE_PERMPRIV     },
+   { TYP_PRIV,  "IMAGE_WORKPRIV",   JPI$_IMAGE_WORKPRIV     },
    { TYP_LSTR,  "IMAGNAME",     JPI$_IMAGNAME   },
    { TYP_PRIV,  "IMAGPRIV",     JPI$_IMAGPRIV   },
    { TYP_INT,   "JOBPRCCNT",    JPI$_JOBPRCCNT  },
+   { TYP_INT,   "JOBTYPE",      JPI$_JOBTYPE    },
+   { TYP_INT,   "KT_COUNT",     JPI$_KT_COUNT   },
+   { TYP_INT,   "KT_LIMIT",     JPI$_KT_LIMIT   },
+   { TYP_TIME,  "LAST_LOGIN_I", JPI$_LAST_LOGIN_I   },
+   { TYP_TIME,  "LAST_LOGIN_N", JPI$_LAST_LOGIN_N   },
+   { TYP_INT,   "LOGIN_FAILURES",   JPI$_LOGIN_FAILURES     },
+   { TYP_UINT,  "LOGIN_FLAGS",  JPI$_LOGIN_FLAGS    },
    { TYP_TIME,  "LOGINTIM",     JPI$_LOGINTIM   },
    { TYP_HEX,   "MASTER_PID",   JPI$_MASTER_PID },
+   { TYP_INT,   "MAXDETACH",    JPI$_MAXDETACH  },
+   { TYP_INT,   "MAXJOBS",      JPI$_MAXJOBS    },
    { TYP_INT,   "MEM",          JPI$_MEM        },
    { TYP_MODE,  "MODE",         JPI$_MODE       },
-   { TYP_INT,   "MSGMASK",      JPI$_MSGMASK    },
+   { TYP_UINT,  "MSGMASK",      JPI$_MSGMASK    },
+   { TYP_INT,   "MULTITHREAD",  JPI$_MULTITHREAD    },
+   { TYP_LSTR,  "NODENAME",     JPI$_NODENAME   },
+   { TYP_HEX,   "NODE_CSID",    JPI$_NODE_CSID  },
+   { TYP_LSTR,  "NODE_VERSION", JPI$_NODE_VERSION   },
    { TYP_HEX,   "OWNER",        JPI$_OWNER      },
    { TYP_INT,   "PAGEFLTS",     JPI$_PAGEFLTS   },
    { TYP_INT,   "PAGFILCNT",    JPI$_PAGFILCNT  },
-   { TYP_HEX,   "PAGFILLOC",    JPI$_PAGFILLOC  },
+   { TYP_INT,   "PAGFILLOC",    JPI$_PAGFILLOC  },
+   { TYP_STYL,  "PARSE_STYLE_IMAGE",    JPI$_PARSE_STYLE_IMAGE  },
+   { TYP_STYL,  "PARSE_STYLE_PERM",     JPI$_PARSE_STYLE_PERM   },
+   { TYP_HEX,   "PERMANENT_CAP_MASK",   JPI$_PERMANENT_CAP_MASK },
+   { TYP_PRIV,  "PERSONA_AUTHPRIV",     JPI$_PERSONA_AUTHPRIV   },
+   { TYP_INT,   "PERSONA_ID",           JPI$_PERSONA_ID         },
+   { TYP_PRIV,  "PERSONA_PERMPRIV",     JPI$_PERSONA_PERMPRIV   },
+   { TYP_PRIV,  "PERSONA_WORKPRIV",     JPI$_PERSONA_WORKPRIV   },
    { TYP_INT,   "PGFLQUOTA",    JPI$_PGFLQUOTA  },
-   { TYP_VEC,   "PHDFLAGS",     JPI$_PHDFLAGS   },
+   { TYP_UINT,  "PHDFLAGS",     JPI$_PHDFLAGS   },
    { TYP_HEX,   "PID",          JPI$_PID        },
    { TYP_INT,   "PPGCNT",       JPI$_PPGCNT     },
    { TYP_INT,   "PRCCNT",       JPI$_PRCCNT     },
    { TYP_INT,   "PRCLM",        JPI$_PRCLM      },
    { TYP_LSTR,  "PRCNAM",       JPI$_PRCNAM     },
+   { TYP_INT,   "PRI",          JPI$_PRI        },
    { TYP_INT,   "PRIB",         JPI$_PRIB       },
+   { TYP_INT,   "PROC_INDEX",   JPI$_PROC_INDEX },
    { TYP_PRIV,  "PROCPRIV",     JPI$_PROCPRIV   },
+   { TYP_LSTR,  "SCHED_CLASS_NAME",     JPI$_SCHED_CLASS_NAME   },
+   { TYP_INT,   "SHRFILLM",     JPI$_SHRFILLM   },
    { TYP_INT,   "SITESPEC",     JPI$_SITESPEC   },
+   { TYP_INT,   "SLOW_VP_SWITCH",       JPI$_SLOW_VP_SWITCH     },
    { TYP_SCHT,  "STATE",        JPI$_STATE      },
-   { TYP_INT,   "STS",          JPI$_STS        },
+   { TYP_UINT,  "STS",          JPI$_STS        },
+   { TYP_UINT,  "STS2",         JPI$_STS2       },
    { TYP_HEX,   "SWPFILLOC",    JPI$_SWPFILLOC  },
+   { TYP_LSTR,  "TABLENAME",    JPI$_TABLENAME  },
    { TYP_SSTR,  "TERMINAL",     JPI$_TERMINAL   },
    { TYP_INT,   "TMBU",         JPI$_TMBU       },
    { TYP_INT,   "TQCNT",        JPI$_TQCNT      },
    { TYP_INT,   "TQLM",         JPI$_TQLM       },
+   { TYP_LSTR,  "TT_ACCPORNAM", JPI$_TT_ACCPORNAM   },
+   { TYP_LSTR,  "TT_PHYDEVNAM", JPI$_TT_PHYDEVNAM   },
+   { TYP_UINT,  "UAF_FLAGS",    JPI$_UAF_FLAGS  },
    { TYP_UIC,   "UIC",          JPI$_UIC        },
    { TYP_SSTR,  "USERNAME",     JPI$_USERNAME   },
-   { TYP_INT,   "VIRTPEAK",     JPI$_VIRTPEAK   },
+   { TYP_I64,   "VIRTPEAK",     JPI$_VIRTPEAK   },
    { TYP_INT,   "VOLUMES",      JPI$_VOLUMES    },
    { TYP_INT,   "WSAUTH",       JPI$_WSAUTH     },
    { TYP_INT,   "WSAUTHEXT",    JPI$_WSAUTHEXT  },
@@ -912,9 +1075,9 @@ static const struct dvi_items_type jpi_items[] =
 
 streng *vms_f_getjpi( tsd_t *TSD, cparamboxptr parms )
 {
-   char buffer[64] ;
-   int item[6] ;
-   short length=0 ;
+   char __align( QUADWORD ) buffer[64] ;
+   struct _ile3 item[2] ;
+   unsigned short length=0 ;
    unsigned int rc, pid, *pidaddr ;
    struct dvi_items_type *ptr ;
    struct dsc$descriptor_s dir = {
@@ -934,12 +1097,14 @@ streng *vms_f_getjpi( tsd_t *TSD, cparamboxptr parms )
       pidaddr = &pid ;
    }
 
-   item[0] = 64 + ( ptr->addr << 16 ) ;
-   item[1] = (int)buffer ;
-   item[2] = (int)&length ;
-   item[3] = item[4] = item[5] = 0 ;
+   item[0].ile3$w_length = 64 ;
+   item[0].ile3$w_code = ptr->addr ;
+   item[0].ile3$ps_bufaddr = buffer ;
+   item[0].ile3$ps_retlen_addr = &length ;
 
-   rc = sys$getjpiw( 0, pidaddr, NULL, &item, NULL, NULL, 0 ) ;
+   memset( &item[1], 0, sizeof(struct _ile3) ) ;
+
+   rc = sys$getjpiw( EFN$C_ENF, pidaddr, NULL, &item, NULL, NULL, 0 ) ;
 
    if (rc != SS$_NORMAL)
    {
@@ -962,6 +1127,7 @@ static const struct dvi_items_type qui_funcs[] = {
    { 0x20, "DISPLAY_FILE",           QUI$_DISPLAY_FILE },
    { 0x02, "DISPLAY_FORM",           QUI$_DISPLAY_FORM },
    { 0x20, "DISPLAY_JOB",            QUI$_DISPLAY_JOB },
+   { 0x02, "DISPLAY_MANAGER",        QUI$_DISPLAY_MANAGER },
    { 0x02, "DISPLAY_QUEUE",          QUI$_DISPLAY_QUEUE },
    { 0x42, "TRANSLATE_QUEUE",        QUI$_TRANSLATE_QUEUE },
 } ;
@@ -985,24 +1151,26 @@ static const int qui_spec_values[] = {
 } ;
 
 #define CHARAC  0x02  /* display_characteristics */
-#define ENTRY   0x04  /* diskplay_entry */
-#define FILE    0x08  /* display_file */
+#define ENTRY   0x04  /* display_entry */
+#define DFILE   0x08  /* display_file */
 #define FORM    0x10  /* display_form */
 #define JOB     0x20  /* display_job */
-#define QUEUE   0x40  /* display_queue */
-#define TRANS   0x80  /* translate_queue */
+#define MANAGER 0x40  /* display_manager */
+#define QUEUE   0x80  /* display_queue */
+#define TRANS   0x100 /* translate_queue */
 
-static const char leg_items[] = {
+static const unsigned short leg_items[] = {
                   ENTRY + JOB, /* ACCOUNT_NAME */
                   ENTRY + JOB, /* AFTER_TIME */
-                        QUEUE, /* ASSIGNED_QUEUE_NAME */
+                ENTRY + QUEUE, /* ASSIGNED_QUEUE_NAME */
+                        QUEUE, /* AUTOSTART_ON */
                         QUEUE, /* BASE_PRIORITY */
           ENTRY + JOB + QUEUE, /* CHARACTERISTICS */
                        CHARAC, /* CHARACTERISTIC_NAME */
                        CHARAC, /* CHARACTERISTIC_NUMBER */
                   ENTRY + JOB, /* CHECKPOINT_DATA */
                   ENTRY + JOB, /* CLI */
-                  ENTRY + JOB, /* COMPLETE_BLOCKS */
+                  ENTRY + JOB, /* COMPLETED_BLOCKS */
                   ENTRY + JOB, /* CONDITION_VECTOR */
                         QUEUE, /* CPU_DEFAULT */
           ENTRY + JOB + QUEUE, /* CPU_LIMIT */
@@ -1011,24 +1179,26 @@ static const char leg_items[] = {
                         QUEUE, /* DEVICE_NAME */
                   ENTRY + JOB, /* ENTRY_NUMBER */
                         QUEUE, /* EXECUTING_JOB_COUNT */
-                         FILE, /* FILE_BURST */
-                         FILE, /* FILE_CHECKPOINTED */
-                         FILE, /* FILE_COPIES */
-                         FILE, /* FILE_COPIES_DONE */
-                         FILE, /* FILE_DELETE */
-                         FILE, /* FILE_DOUBLE_SPACE */
-                         FILE, /* FILE_EXECUTING */
-                         FILE, /* FILE_FLAG */
-                         FILE, /* FILE_FLAGS */
-                         FILE, /* FILE_IDENTIFICATION */
-                         FILE, /* FILE_PAGE_HEADER */
-                         FILE, /* FILE_PAGINATE */
-                         FILE, /* FILE_PASSALL */
-                         FILE, /* FILE_SETUP_MODULES */
-                         FILE, /* FILE_SPECIFICATION */
-                         FILE, /* FILE_STATUS */
-                         FILE, /* FILE_TRAILER */
-                         FILE, /* FIRST_PAGE */
+                        DFILE, /* FILE_BURST */
+                        DFILE, /* FILE_CHECKPOINTED */
+                        DFILE, /* FILE_COPIES */
+                        DFILE, /* FILE_COPIES_DONE */
+                  ENTRY + JOB, /* FILE_COUNT */
+                        DFILE, /* FILE_DELETE */
+ /* TODO: "FILE_DEVICE" (NAM$T_DVI) and "FILE_DID" (NAM$W_DID) */
+                        DFILE, /* FILE_DOUBLE_SPACE */
+                        DFILE, /* FILE_EXECUTING */
+                        DFILE, /* FILE_FLAG */
+                        DFILE, /* FILE_FLAGS */
+                        DFILE, /* FILE_IDENTIFICATION */
+                        DFILE, /* FILE_PAGE_HEADER */
+                        DFILE, /* FILE_PAGINATE */
+                        DFILE, /* FILE_PASSALL */
+                        DFILE, /* FILE_SETUP_MODULES */
+                        DFILE, /* FILE_SPECIFICATION */
+                        DFILE, /* FILE_STATUS */
+                        DFILE, /* FILE_TRAILER */
+                        DFILE, /* FIRST_PAGE */
                          FORM, /* FORM_DESCRIPTION */
                          FORM, /* FORM_FLAGS */
                          FORM, /* FORM_LENGTH */
@@ -1050,9 +1220,12 @@ static const char leg_items[] = {
             /* see comment in vms.rexx about intervening jobs */
             /* ENTRY + */ JOB, /* INTERVENING_JOBS */
                   ENTRY + JOB, /* JOB_ABORTING */
+                  ENTRY + JOB, /* JOB_COMPLETION_QUEUE */
+                  ENTRY + JOB, /* JOB_COMPLETION_TIME */
                   ENTRY + JOB, /* JOB_COPIES */
                   ENTRY + JOB, /* JOB_COPIES_DONE */
                   ENTRY + JOB, /* JOB_CPU_LIMIT */
+                  ENTRY + JOB, /* JOB_ERROR_RETENTION */
                   ENTRY + JOB, /* JOB_EXECUTING */
                   ENTRY + JOB, /* JOB_FILE_BURST */
                   ENTRY + JOB, /* JOB_FILE_BURST_ONE */
@@ -1077,9 +1250,12 @@ static const char leg_items[] = {
                         QUEUE, /* JOB_RESET_MODULES */
                   ENTRY + JOB, /* JOB_RESTART */
                   ENTRY + JOB, /* JOB_RETAINED */
+                  ENTRY + JOB, /* JOB_RETENTION */
+                  ENTRY + JOB, /* JOB_RETENTION_TIME */
                   ENTRY + JOB, /* JOB_SIZE */
                         QUEUE, /* JOB_SIZE_MAXIMUM */
                         QUEUE, /* JOB_SIZE_MINIMUM */
+                  ENTRY + JOB, /* JOB_STALLED */
                   ENTRY + JOB, /* JOB_STARTING */
                   ENTRY + JOB, /* JOB_STATUS */
                   ENTRY + JOB, /* JOB_SUSPENDED */
@@ -1087,10 +1263,13 @@ static const char leg_items[] = {
                   ENTRY + JOB, /* JOB_WSDEFAULT */
                   ENTRY + JOB, /* JOB_WSEXTENT */
                   ENTRY + JOB, /* JOB_WSQUOTA */
-                         FILE, /* LAST_PAGE */
+                        DFILE, /* LAST_PAGE */
                         QUEUE, /* LIBRARY_SPECIFICATION */
                   ENTRY + JOB, /* LOG_QUEUE */
                   ENTRY + JOB, /* LOG_SPECIFICATION */
+                      MANAGER, /* MANAGER_NAME */
+                      MANAGER, /* MANAGER_NODES */
+                      MANAGER, /* MANAGER_STATUS */
                   ENTRY + JOB, /* NOTE */
                   ENTRY + JOB, /* OPERATOR_REQUEST */
                         QUEUE, /* OWNER_UIC */
@@ -1115,15 +1294,21 @@ static const char leg_items[] = {
                   ENTRY + JOB, /* PEND_QUEUE_STATE */
                   ENTRY + JOB, /* PEND_STOCK_MISMATCH */
                   ENTRY + JOB, /* PRIORITY */
-                        QUEUE, /* PROCESSOR */
+                ENTRY + QUEUE, /* PROCESSOR */
                         QUEUE, /* PROTECTION */
                         QUEUE, /* QUEUE_DESCRIPTION */
                         QUEUE, /* QUEUE_ACL_SPECIFIED */
                         QUEUE, /* QUEUE_ALIGNING */
+                        QUEUE, /* QUEUE_AUTOSTART */
+                        QUEUE, /* QUEUE_AUTOSTART_INACTIVE */
+                        QUEUE, /* QUEUE_AVAILABLE */
                         QUEUE, /* QUEUE_BATCH */
+                        QUEUE, /* QUEUE_BUSY */
                         QUEUE, /* QUEUE_CLOSED */
                         QUEUE, /* QUEUE_CPU_DEFAULT */
                         QUEUE, /* QUEUE_CPU_LIMIT */
+                        QUEUE, /* QUEUE_DESCRIPTION */
+                      MANAGER, /* QUEUE_DIRECTORY */
                         QUEUE, /* QUEUE_FILE_BURST */
                         QUEUE, /* QUEUE_FILE_BURST_ONE */
                         QUEUE, /* QUEUE_FILE_FLAG */
@@ -1131,7 +1316,7 @@ static const char leg_items[] = {
                         QUEUE, /* QUEUE_FILE_PAGINATE */
                         QUEUE, /* QUEUE_FILE_TRAILER */
                         QUEUE, /* QUEUE_FILE_TRAILER_ONE */
-                        QUEUE, /* QUEUE_FLAGS */
+                ENTRY + QUEUE, /* QUEUE_FLAGS */
                         QUEUE, /* QUEUE_GENERIC */
                         QUEUE, /* QUEUE_GENERIC_SELECTION */
                         QUEUE, /* QUEUE_IDLE */
@@ -1153,19 +1338,22 @@ static const char leg_items[] = {
                         QUEUE, /* QUEUE_SERVER */
                         QUEUE, /* QUEUE_STALLED */
                         QUEUE, /* QUEUE_STARTING */
-                        QUEUE, /* QUEUE_STATUS */
+                ENTRY + QUEUE, /* QUEUE_STATUS */
                         QUEUE, /* QUEUE_STOPPED */
                         QUEUE, /* QUEUE_STOPPING */
+                        QUEUE, /* QUEUE_STOP_PENDING */
                         QUEUE, /* QUEUE_SWAP */
                         QUEUE, /* QUEUE_TERMINAL */
                         QUEUE, /* QUEUE_UNAVAILABLE */
                         QUEUE, /* QUEUE_WSDEFAULT */
                         QUEUE, /* QUEUE_WSEXTENT */
                         QUEUE, /* QUEUE_WSQUOTA */
+          ENTRY + JOB + QUEUE, /* RAD */
                   ENTRY + JOB, /* REQUEUE_QUEUE_NAME */
-                          JOB, /* RESTART_QUEUE_NAME */
+                  ENTRY + JOB, /* RESTART_QUEUE_NAME */
                         QUEUE, /* RETAINED_JOB_COUNT */
-                        QUEUE, /* SCSNODE_NAME */
+              MANAGER + QUEUE, /* SCSNODE_NAME */
+                        QUEUE, /* SECURITY_INACCESSIBLE */
                   ENTRY + JOB, /* SUBMISSION_TIME */
                         QUEUE, /* TIMED_RELEASE_JOB_COUNT */
                   ENTRY + JOB, /* UIC */
@@ -1180,6 +1368,7 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_LSTR, "ACCOUNT_NAME",          QUI$_ACCOUNT_NAME               },
    { TYP_TIME, "AFTER_TIME",            QUI$_AFTER_TIME                 },
    { TYP_LSTR, "ASSIGNED_QUEUE_NAME",   QUI$_ASSIGNED_QUEUE_NAME        },
+   { TYP_LSTR, "AUTOSTART_ON",          QUI$_AUTOSTART_ON               },
    { TYP_INT,  "BASE_PRIORITY",         QUI$_BASE_PRIORITY              },
    { TYP_LSTR, "CHARACTERISTICS",       QUI$_CHARACTERISTICS            },
    { TYP_LSTR, "CHARACTERISTIC_NAME",   QUI$_CHARACTERISTIC_NAME        },
@@ -1187,7 +1376,8 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_LSTR, "CHECKPOINT_DATA",       QUI$_CHECKPOINT_DATA            },
    { TYP_LSTR, "CLI",                   QUI$_CLI                        },
    { TYP_INT,  "COMPLETED_BLOCKS",      QUI$_COMPLETED_BLOCKS           },
-   { TYP_HEX,  "CONDITION_VECTOR",      QUI$_CONDITION_VECTOR           },
+ /* TODO: the next item should display 3 longwords, not just 1 */
+   { TYP_UI64, "CONDITION_VECTOR",      QUI$_CONDITION_VECTOR           },
    { TYP_DTIM, "CPU_DEFAULT",           QUI$_CPU_DEFAULT                },
    { TYP_DTIM, "CPU_LIMIT",             QUI$_CPU_LIMIT                  },
    { TYP_LSTR, "DEFAULT_FORM_NAME",     QUI$_DEFAULT_FORM_NAME          },
@@ -1199,22 +1389,24 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_FLS,  "FILE_CHECKPOINTED",     QUI$M_FILE_CHECKPOINTED         },
    { TYP_INT,  "FILE_COPIES",           QUI$_FILE_COPIES                },
    { TYP_INT,  "FILE_COPIES_DONE",      QUI$_FILE_COPIES_DONE           },
+   { TYP_INT,  "FILE_COUNT",            QUI$_FILE_COUNT                 },
    { TYP_FLF,  "FILE_DELETE",           QUI$M_FILE_DELETE               },
+ /* TODO: "FILE_DEVICE" (NAM$T_DVI) and "FILE_DID" (NAM$W_DID) */
    { TYP_FLF,  "FILE_DOUBLE_SPACE",     QUI$M_FILE_DOUBLE_SPACE         },
    { TYP_FLS,  "FILE_EXECUTING",        QUI$M_FILE_EXECUTING            },
    { TYP_FLF,  "FILE_FLAG",             QUI$M_FILE_FLAG                 },
-   { TYP_INT,  "FILE_FLAGS",            QUI$_FILE_FLAGS                 },
+   { TYP_UINT, "FILE_FLAGS",            QUI$_FILE_FLAGS                 },
    { TYP_LSTR, "FILE_IDENTIFICATION",   QUI$_FILE_IDENTIFICATION        },
    { TYP_FLF,  "FILE_PAGE_HEADER",      QUI$M_FILE_PAGE_HEADER          },
    { TYP_FLF,  "FILE_PAGINATE",         QUI$M_FILE_PAGINATE             },
    { TYP_FLF,  "FILE_PASSALL",          QUI$M_FILE_PASSALL              },
    { TYP_LSTR, "FILE_SETUP_MODULES",    QUI$_FILE_SETUP_MODULES         },
    { TYP_LSTR, "FILE_SPECIFICATION",    QUI$_FILE_SPECIFICATION         },
-   { TYP_INT,  "FILE_STATUS",           QUI$_FILE_STATUS                },
+   { TYP_UINT, "FILE_STATUS",           QUI$_FILE_STATUS                },
    { TYP_FLF,  "FILE_TRAILER",          QUI$M_FILE_TRAILER              },
    { TYP_INT,  "FIRST_PAGE",            QUI$_FIRST_PAGE                 },
    { TYP_LSTR, "FORM_DESCRIPTION",      QUI$_FORM_DESCRIPTION           },
-   { TYP_INT,  "FORM_FLAGS",            QUI$_FORM_FLAGS                 },
+   { TYP_UINT, "FORM_FLAGS",            QUI$_FORM_FLAGS                 },
    { TYP_INT,  "FORM_LENGTH",           QUI$_FORM_LENGTH                },
    { TYP_INT,  "FORM_MARGIN_BOTTOM",    QUI$_FORM_MARGIN_BOTTOM         },
    { TYP_INT,  "FORM_MARGIN_LEFT",      QUI$_FORM_MARGIN_LEFT           },
@@ -1233,9 +1425,12 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_INT,  "INTERVENING_BLOCKS",    QUI$_INTERVENING_BLOCKS         },
    { TYP_INT,  "INTERVENING_JOBS",      QUI$_INTERVENING_JOBS           },
    { TYP_JBS,  "JOB_ABORTING",          QUI$M_JOB_ABORTING              },
+   { TYP_LSTR, "JOB_COMPLETION_QUEUE",  QUI$_JOB_COMPLETION_QUEUE       },
+   { TYP_TIME, "JOB_COMPLETION_TIME",   QUI$_JOB_COMPLETION_TIME        },
    { TYP_INT,  "JOB_COPIES",            QUI$_JOB_COPIES                 },
    { TYP_INT,  "JOB_COPIES_DONE",       QUI$_JOB_COPIES_DONE            },
    { TYP_JBF,  "JOB_CPU_LIMIT",         QUI$M_JOB_CPU_LIMIT             },
+   { TYP_JBF,  "JOB_ERROR_RETENTION",   QUI$M_JOB_ERROR_RETENTION       },
    { TYP_JBS,  "JOB_EXECUTING",         QUI$M_JOB_EXECUTING             },
    { TYP_JBF,  "JOB_FILE_BURST",        QUI$M_JOB_FILE_BURST            },
    { TYP_JBF,  "JOB_FILE_BURST_ONE",    QUI$M_JOB_FILE_BURST_ONE        },
@@ -1244,7 +1439,7 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_JBF,  "JOB_FILE_PAGINATE",     QUI$M_JOB_FILE_PAGINATE         },
    { TYP_JBF,  "JOB_FILE_TRAILER",      QUI$M_JOB_FILE_TRAILER          },
    { TYP_JBF,  "JOB_FILE_TRAILER_ONE",  QUI$M_JOB_FILE_TRAILER_ONE      },
-   { TYP_INT,  "JOB_FLAGS",             QUI$_JOB_FLAGS                  },
+   { TYP_UINT, "JOB_FLAGS",             QUI$_JOB_FLAGS                  },
    { TYP_JBS,  "JOB_HOLDING",           QUI$M_JOB_HOLDING               },
    { TYP_JBS,  "JOB_INACCESSIBLE",      QUI$M_JOB_INACCESSIBLE          },
    { TYP_INT,  "JOB_LIMIT",             QUI$_JOB_LIMIT                  },
@@ -1260,11 +1455,14 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_LSTR, "JOB_RESET_MODULES",     QUI$_JOB_RESET_MODULES          },
    { TYP_JBF,  "JOB_RESTART",           QUI$M_JOB_RESTART               },
    { TYP_JBS,  "JOB_RETAINED",          QUI$M_JOB_RETAINED              },
+   { TYP_JBF,  "JOB_RETENTION",         QUI$M_JOB_RETENTION             },
+   { TYP_TIME, "JOB_RETENTION_TIME",    QUI$_JOB_RETENTION_TIME         },
    { TYP_INT,  "JOB_SIZE",              QUI$_JOB_SIZE                   },
    { TYP_INT,  "JOB_SIZE_MAXIMUM",      QUI$_JOB_SIZE_MAXIMUM           },
    { TYP_INT,  "JOB_SIZE_MINIMUM",      QUI$_JOB_SIZE_MINIMUM           },
+   { TYP_JBS,  "JOB_STALLED",           QUI$M_JOB_STALLED               },
    { TYP_JBS,  "JOB_STARTING",          QUI$M_JOB_STARTING              },
-   { TYP_INT,  "JOB_STATUS",            QUI$_JOB_STATUS                 },
+   { TYP_UINT, "JOB_STATUS",            QUI$_JOB_STATUS                 },
    { TYP_JBS,  "JOB_SUSPENDED",         QUI$M_JOB_SUSPENDED             },
    { TYP_JBS,  "JOB_TIMED_RELEASE",     QUI$M_JOB_TIMED_RELEASE         },
    { TYP_JBF,  "JOB_WSDEFAULT",         QUI$M_JOB_WSDEFAULT             },
@@ -1274,6 +1472,9 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_LSTR, "LIBRARY_SPECIFICATION", QUI$_LIBRARY_SPECIFICATION      },
    { TYP_LSTR, "LOG_QUEUE",             QUI$_LOG_QUEUE                  },
    { TYP_LSTR, "LOG_SPECIFICATION",     QUI$_LOG_SPECIFICATION          },
+   { TYP_LSTR, "MANAGER_NAME",          QUI$_MANAGER_NAME               },
+   { TYP_LSTR, "MANAGER_NODES",         QUI$_MANAGER_NODES              },
+   { TYP_UINT, "MANAGER_STATUS",        QUI$_MANAGER_STATUS             },
    { TYP_LSTR, "NOTE",                  QUI$_NOTE                       },
    { TYP_LSTR, "OPERATOR_REQUEST",      QUI$_OPERATOR_REQUEST           },
    { TYP_UIC,  "OWNER_UIC",             QUI$_OWNER_UIC                  },
@@ -1288,7 +1489,7 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_LSTR, "PARAMETER_8",           QUI$_PARAMETER_8                },
    { TYP_INT,  "PENDING_JOB_BLOCK_COUNT",QUI$_PENDING_JOB_BLOCK_COUNT   },
    { TYP_INT,  "PENDING_JOB_COUNT",     QUI$_PENDING_JOB_COUNT          },
-   { TYP_INT,  "PENDING_JOB_REASON",    QUI$_PENDING_JOB_REASON         },
+   { TYP_UINT, "PENDING_JOB_REASON",    QUI$_PENDING_JOB_REASON         },
    { TYP_PJR,  "PEND_CHAR_MISMATCH",    QUI$M_PEND_CHAR_MISMATCH        },
    { TYP_PJR,  "PEND_JOB_SIZE_MAX",     QUI$M_PEND_JOB_SIZE_MAX         },
    { TYP_PJR,  "PEND_JOB_SIZE_MIN",     QUI$M_PEND_JOB_SIZE_MIN         },
@@ -1302,11 +1503,16 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_PROT, "PROTECTION",            QUI$_PROTECTION                 },
    { TYP_QUF,  "QUEUE_ACL_SPECIFIED",   QUI$M_QUEUE_ACL_SPECIFIED       },
    { TYP_QUS,  "QUEUE_ALIGNING",        QUI$M_QUEUE_ALIGNING            },
+   { TYP_QUS,  "QUEUE_AUTOSTART",       QUI$M_QUEUE_AUTOSTART           },
+   { TYP_QUS,  "QUEUE_AUTOSTART_INACTIVE",QUI$M_QUEUE_AUTOSTART_INACTIVE    },
+   { TYP_QUS,  "QUEUE_AVAILABLE",       QUI$M_QUEUE_AVAILABLE           },
    { TYP_QUF,  "QUEUE_BATCH",           QUI$M_QUEUE_BATCH               },
+   { TYP_QUS,  "QUEUE_BUSY",            QUI$M_QUEUE_BUSY                },
    { TYP_QUS,  "QUEUE_CLOSED",          QUI$M_QUEUE_CLOSED              },
    { TYP_QUF,  "QUEUE_CPU_DEFAULT",     QUI$M_QUEUE_CPU_DEFAULT         },
    { TYP_QUF,  "QUEUE_CPU_LIMIT",       QUI$M_QUEUE_CPU_LIMIT           },
-   { TYP_MSTR, "QUEUE_DESCRIPTION",     QUI$_QUEUE_DESCRIPTION          },
+   { TYP_LSTR, "QUEUE_DESCRIPTION",     QUI$_QUEUE_DESCRIPTION          },
+   { TYP_LSTR, "QUEUE_DIRECTORY",       QUI$_QUEUE_DIRECTORY            },
    { TYP_QUF,  "QUEUE_FILE_BURST",      QUI$M_QUEUE_FILE_BURST          },
    { TYP_QUF,  "QUEUE_FILE_BURST_ONE",  QUI$M_QUEUE_FILE_BURST_ONE      },
    { TYP_QUF,  "QUEUE_FILE_FLAG",       QUI$M_QUEUE_FILE_FLAG           },
@@ -1314,7 +1520,7 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_QUF,  "QUEUE_FILE_PAGINATE",   QUI$M_QUEUE_FILE_PAGINATE       },
    { TYP_QUF,  "QUEUE_FILE_TRAILER",    QUI$M_QUEUE_FILE_TRAILER        },
    { TYP_QUF,  "QUEUE_FILE_TRAILER_ONE",QUI$M_QUEUE_FILE_TRAILER_ONE    },
-   { TYP_INT,  "QUEUE_FLAGS",           QUI$_QUEUE_FLAGS                },
+   { TYP_UINT, "QUEUE_FLAGS",           QUI$_QUEUE_FLAGS                },
    { TYP_QUF,  "QUEUE_GENERIC",         QUI$M_QUEUE_GENERIC             },
    { TYP_QUF,  "QUEUE_GENERIC_SELECTION",QUI$M_QUEUE_GENERIC_SELECTION  },
    { TYP_QUS,  "QUEUE_IDLE",            QUI$M_QUEUE_IDLE                },
@@ -1336,19 +1542,22 @@ static const struct dvi_items_type qui_items[] = {
    { TYP_QUS,  "QUEUE_SERVER",          QUI$M_QUEUE_SERVER              },
    { TYP_QUS,  "QUEUE_STALLED",         QUI$M_QUEUE_STALLED             },
    { TYP_QUS,  "QUEUE_STARTING",        QUI$M_QUEUE_STARTING            },
-   { TYP_INT,  "QUEUE_STATUS",          QUI$_QUEUE_STATUS               },
+   { TYP_UINT, "QUEUE_STATUS",          QUI$_QUEUE_STATUS               },
    { TYP_QUS,  "QUEUE_STOPPED",         QUI$M_QUEUE_STOPPED             },
    { TYP_QUS,  "QUEUE_STOPPING",        QUI$M_QUEUE_STOPPING            },
+   { TYP_QUS,  "QUEUE_STOP_PENDING",    QUI$M_QUEUE_STOP_PENDING        },
    { TYP_QUF,  "QUEUE_SWAP",            QUI$M_QUEUE_SWAP                },
    { TYP_QUF,  "QUEUE_TERMINAL",        QUI$M_QUEUE_TERMINAL            },
    { TYP_QUS,  "QUEUE_UNAVAILABLE",     QUI$M_QUEUE_UNAVAILABLE         },
    { TYP_QUF,  "QUEUE_WSDEFAULT",       QUI$M_QUEUE_WSDEFAULT           },
    { TYP_QUF,  "QUEUE_WSEXTENT",        QUI$M_QUEUE_WSEXTENT            },
    { TYP_QUF,  "QUEUE_WSQUOTA",         QUI$M_QUEUE_WSQUOTA             },
+   { TYP_INT,  "RAD",                   QUI$_RAD                        },
    { TYP_LSTR, "REQUEUE_QUEUE_NAME",    QUI$_REQUEUE_QUEUE_NAME         },
    { TYP_LSTR, "RESTART_QUEUE_NAME",    QUI$_RESTART_QUEUE_NAME         },
    { TYP_INT,  "RETAINED_JOB_COUNT",    QUI$_RETAINED_JOB_COUNT         },
    { TYP_LSTR, "SCSNODE_NAME",          QUI$_SCSNODE_NAME               },
+   { TYP_QUF,  "SECURITY_INACCESSIBLE", QUI$M_SECURITY_INACCESSIBLE     },
    { TYP_TIME, "SUBMISSION_TIME",       QUI$_SUBMISSION_TIME            },
    { TYP_INT,  "TIMED_RELEASE_JOB_COUNT",QUI$_TIMED_RELEASE_JOB_COUNT   },
    { TYP_LSTR, "UIC",                   QUI$_UIC                        },
@@ -1376,7 +1585,7 @@ static const struct dvi_items_type qui_flags[] = {
    { TYP_INT, "WILDCARD",               QUI$M_SEARCH_WILDCARD           },
 } ;
 
-static const int qui_stats[] = {
+static const unsigned short qui_stats[] = {
         QUI$_FILE_FLAGS,                QUI$_FILE_STATUS,
         QUI$_FORM_FLAGS,                QUI$_JOB_FLAGS,
         QUI$_JOB_STATUS,                QUI$_PENDING_JOB_REASON,
@@ -1386,11 +1595,13 @@ static const int qui_stats[] = {
 
 streng *vms_f_getqui( tsd_t *TSD, cparamboxptr parms )
 {
-   short length, func ;
-   int flags, i, item_value, objnum, rc, usenum, item_mask ;
-   char buffer[256] ;
-   int items[21], cnt=0, *vector ;
-   int search_flags=0, search_length=4, search_number[10], search_nlength ;
+   unsigned short length, func, item_value ;
+   int flags, i, objnum, rc, usenum, item_mask ;
+   char __align( QUADWORD ) buffer[256] ;
+   int cnt=0, *vector ;
+   struct _ile3 items[7] ;
+   int search_flags=0, search_length=4, search_number[10] ;
+   unsigned short search_nlength ;
    cparamboxptr tmp ;
    struct _iosb ioblk ;
    streng *item, *objid ;
@@ -1430,18 +1641,20 @@ streng *vms_f_getqui( tsd_t *TSD, cparamboxptr parms )
    {
       if (usenum=myisnumber(TSD, objid))
       {
-         items[cnt++] = 4 + ( QUI$_SEARCH_NUMBER << 16 ) ;
-         items[cnt++] = (int)&(search_number[0]) ;
-         items[cnt++] = (int)NULL /* &search_nlength  */ ;
+         items[cnt].ile3$w_length = 4 ;
+         items[cnt].ile3$w_code = QUI$_SEARCH_NUMBER ;
+         items[cnt].ile3$ps_bufaddr = &(search_number[0]) ;
+         items[cnt++].ile3$ps_retlen_addr = NULL ;
          search_number[0] = atozpos(TSD, objid, "VMS_F_GETQUI", 0 ) ;
          search_nlength = 0 ;
          length = 0 ;
       }
       else
       {
-         items[cnt++] = objid->len + ( QUI$_SEARCH_NAME << 16 ) ;
-         items[cnt++] = (int)&(objid->value[0]) ;
-         items[cnt++] = (int)&search_nlength ;
+         items[cnt].ile3$w_length = objid->len ;
+         items[cnt].ile3$w_code = QUI$_SEARCH_NAME ;
+         items[cnt].ile3$ps_bufaddr = &(objid->value[0]) ;
+         items[cnt++].ile3$ps_retlen_addr = &search_nlength ;
          search_nlength = objid->len ;
       }
    }
@@ -1466,9 +1679,10 @@ streng *vms_f_getqui( tsd_t *TSD, cparamboxptr parms )
       else
          item_value = item_ptr->addr ;
 
-      items[cnt++] = 256 + ( item_value << 16 ) ;
-      items[cnt++] = (int)buffer ;
-      items[cnt++] = (int)&length ;
+      items[cnt].ile3$w_length = 256 ;
+      items[cnt].ile3$w_code = item_value ;
+      items[cnt].ile3$ps_bufaddr = buffer ;
+      items[cnt++].ile3$ps_retlen_addr = &length ;
       vector = (int *)buffer ;
 
       if (!(leg_items[item_ptr - qui_items] & (1 << (ptr-qui_funcs))))
@@ -1477,14 +1691,11 @@ streng *vms_f_getqui( tsd_t *TSD, cparamboxptr parms )
    else
       item_ptr = NULL ;
 
-   items[cnt++] = 0 ;
-   items[cnt++] = 0 ;
-   items[cnt++] = 0 ;
-
+   memset(&items[cnt++], 0, sizeof(struct _ile3));
    func = ptr->addr ;
    memset(&ioblk, 0, sizeof(struct _iosb));
 
-   rc = sys$getquiw( 0, func, NULL, &items, &ioblk, NULL, 0 ) ;
+   rc = sys$getquiw( EFN$C_ENF, func, NULL, &items, &ioblk, NULL, 0 ) ;
 
    if ((rc==SS$_NORMAL) && ((ioblk.iosb$w_status==JBC$_NOSUCHJOB) ||
           (ioblk.iosb$w_status==JBC$_NOMOREQUE) ||
@@ -1516,29 +1727,60 @@ streng *vms_f_getqui( tsd_t *TSD, cparamboxptr parms )
 
 static const struct dvi_items_type syi_items[] = {
    { TYP_INT,  "ACTIVECPU_CNT",         SYI$_ACTIVECPU_CNT              },
+   { TYP_UI64, "ACTIVE_CPU_BITMAP",     SYI$_ACTIVE_CPU_BITMAP          },
+   { TYP_UI64, "ACTIVE_CPU_MASK",       SYI$_ACTIVE_CPU_MASK            },
    { TYP_INT,  "ARCHFLAG",              SYI$_ARCHFLAG                   },
+   { TYP_LSTR, "ARCH_NAME",             SYI$_ARCH_NAME                  },
+   { TYP_INT,  "ARCH_TYPE",             SYI$_ARCH_TYPE                  },
    { TYP_INT,  "AVAILCPU_CNT",          SYI$_AVAILCPU_CNT               },
+   { TYP_UI64, "AVAIL_CPU_BITMAP",      SYI$_ACTIVE_CPU_BITMAP          },
+   { TYP_UI64, "AVAIL_CPU_MASK",        SYI$_ACTIVE_CPU_MASK            },
    { TYP_TIME, "BOOTTIME",              SYI$_BOOTTIME                   },
+   { TYP_LSTR, "BOOT_DEVICE",           SYI$_BOOT_DEVICE                },
    { TYP_BOOL, "CHARACTER_EMULATED",    SYI$_CHARACTER_EMULATED         },
-/* { TYP_INT,  "CLUSTER_EVOTES",        SYI$_CLUSTER_EVOTES             }, */
+   { TYP_INT,  "CLUSTER_EVOTES",        SYI$_CLUSTER_EVOTES             },
    { TYP_LHEX, "CLUSTER_FSYSID",        SYI$_CLUSTER_FSYSID             },
    { TYP_TIME, "CLUSTER_FTIME",         SYI$_CLUSTER_FTIME              },
    { TYP_BOOL, "CLUSTER_MEMBER",        SYI$_CLUSTER_MEMBER             },
    { TYP_INT,  "CLUSTER_NODES",         SYI$_CLUSTER_NODES              },
    { TYP_INT,  "CLUSTER_QUORUM",        SYI$_CLUSTER_QUORUM             },
    { TYP_INT,  "CLUSTER_VOTES",         SYI$_CLUSTER_VOTES              },
+   { TYP_INT,  "COMMUNITY_ID",          SYI$_COMMUNITY_ID               },
+   { TYP_LSTR, "CONSOLE_VERSION",       SYI$_CONSOLE_VERSION            },
    { TYP_INT,  "CONTIG_GBLPAGES",       SYI$_CONTIG_GBLPAGES            },
    { TYP_INT,  "CPU",                   SYI$_CPU                        },
+   { TYP_UI64, "CPUCAP_MASK",           SYI$_CPUCAP_MASK                },
+   { TYP_UI64, "CPUCONF",               SYI$_CPUCONF                    },
+   { TYP_INT,  "CPUTYPE",               SYI$_CPUTYPE                    },
+   { TYP_LSTR, "CPU_AUTOSTART",         SYI$_CPU_AUTOSTART              },
+   { TYP_LSTR, "CPU_FAILOVER",          SYI$_CPU_FAILOVER               },
+   { TYP_BOOL, "CWLOGICALS",            SYI$_CWLOGICALS                 },
+   { TYP_BOOL, "DAY_OVERRIDE",          SYI$_DAY_OVERRIDE               },
+   { TYP_BOOL, "DAY_SECONDARY",         SYI$_DAY_SECONDARY              },
    { TYP_BOOL, "DECIMAL_EMULATED",      SYI$_DECIMAL_EMULATED           },
+   { TYP_LSTR, "DECNET_FULLNAME",       SYI$_DECNET_FULLNAME            },
+   { TYP_LHEX, "DECNET_VERSION",        SYI$_DECNET_VERSION             },
+   { TYP_INT,  "DEF_PRIO_MAX",          SYI$_DEF_PRIO_MAX               },
+   { TYP_INT,  "DEF_PRIO_MIN",          SYI$_DEF_PRIO_MIN               },
    { TYP_BOOL, "D_FLOAT_EMULATED",      SYI$_D_FLOAT_EMULATED           },
+   { TYP_INT,  "ERLBUFFERPAGES",        SYI$_ERLBUFFERPAGES             },
    { TYP_INT,  "ERRORLOGBUFFERS",       SYI$_ERRORLOGBUFFERS            },
+   { TYP_INT,  "ERLBUFFERPAG_S2",       SYI$_ERLBUFFERPAG_S2            },
    { TYP_INT,  "FREE_GBLPAGES",         SYI$_FREE_GBLPAGES              },
    { TYP_INT,  "FREE_GBLSECTS",         SYI$_FREE_GBLSECTS              },
+ /* TODO: how do we get total FREE_PAGES? */
    { TYP_BOOL, "F_FLOAT_EMULATED",      SYI$_F_FLOAT_EMULATED           },
    { TYP_BOOL, "G_FLOAT_EMULATED",      SYI$_G_FLOAT_EMULATED           },
    { TYP_INT,  "HW_MODEL",              SYI$_HW_MODEL                   },
    { TYP_LSTR, "HW_NAME",               SYI$_HW_NAME                    },
    { TYP_BOOL, "H_FLOAT_EMULATED",      SYI$_H_FLOAT_EMULATED           },
+   { TYP_UI64, "IO_PRCPU_BITMAP",       SYI$_IO_PRCPU_BITMAP            },
+   { TYP_INT,  "ITB_ENTRIES",           SYI$_ITB_ENTRIES                },
+   { TYP_INT,  "MAX_CPUS",              SYI$_MAX_CPUS                   },
+   { TYP_INT,  "MAX_PFN",               SYI$_MAX_PFN                    },
+   { TYP_INT,  "MEMSIZE",               SYI$_MEMSIZE                    },
+ /* TODO: how do we get MODIFIED_PAGES? */
+   { TYP_INT,  "MULTITHREAD",           SYI$_MULTITHREAD                },
    { TYP_LSTR, "NODENAME",              SYI$_NODENAME                   },
    { TYP_INT,  "NODE_AREA",             SYI$_NODE_AREA                  },
    { TYP_LHEX, "NODE_CSID",             SYI$_NODE_CSID                  },
@@ -1552,21 +1794,61 @@ static const struct dvi_items_type syi_items[] = {
    { TYP_LSTR, "NODE_SWVERS",           SYI$_NODE_SWVERS                },
    { TYP_LHEX, "NODE_SYSTEMID",         SYI$_NODE_SYSTEMID              },
    { TYP_INT,  "NODE_VOTES",            SYI$_NODE_VOTES                 },
+ /* TODO: how do we get NPAGED_* and PAGED_* items? */
    { TYP_INT,  "PAGEFILE_FREE",         SYI$_PAGEFILE_FREE              },
    { TYP_INT,  "PAGEFILE_PAGE",         SYI$_PAGEFILE_PAGE              },
+   { TYP_INT,  "PAGE_SIZE",             SYI$_PAGE_SIZE                  },
+   { TYP_LSTR, "PALCODE_VERSION",       SYI$_PALCODE_VERSION            },
+   { TYP_INT,  "PARTITION_ID",          SYI$_PARTITION_ID               },
+ /* TODO: PFN_MEMORY_MAP and PFN_MEMORY_MAP_64 need special handling */
+   { TYP_INT,  "PHYSICALPAGES",         SYI$_PHYSICALPAGES              },
+   { TYP_INT,  "PMD_COUNT",             SYI$_PMD_COUNT                  },
+   { TYP_INT,  "POTENTIALCPU_CNT",      SYI$_POTENTIALCPU_CNT           },
+   { TYP_UI64, "POTENTIAL_CPU_BITMAP",  SYI$_POTENTIAL_CPU_BITMAP       },
+   { TYP_UI64, "POTENTIAL_CPU_MASK",    SYI$_POTENTIAL_CPU_MASK         },
+   { TYP_INT,  "POWEREDCPU_CNT",        SYI$_POWEREDCPU_CNT             },
+   { TYP_UI64, "POWERED_CPU_BITMAP",    SYI$_POWERED_CPU_BITMAP         },
+   { TYP_UI64, "POWERED_CPU_MASK",      SYI$_POWERED_CPU_MASK           },
+   { TYP_INT,  "PRESENTCPU_CNT",        SYI$_PRESENTCPU_CNT             },
+   { TYP_UI64, "PRESENT_CPU_BITMAP",    SYI$_PRESENT_CPU_BITMAP         },
+   { TYP_UI64, "PRESENT_CPU_MASK",      SYI$_PRESENT_CPU_MASK           },
+   { TYP_INT,  "PRIMARY_CPUID",         SYI$_PRIMARY_CPUID              },
+   { TYP_UI64, "PROCESS_SPACE_LIMIT",   SYI$_PROCESS_SPACE_LIMIT        },
+   { TYP_INT,  "PSXFIFO_PRIO_MAX",      SYI$_PSXFIFO_PRIO_MAX           },
+   { TYP_INT,  "PSXFIFO_PRIO_MIN",      SYI$_PSXFIFO_PRIO_MIN           },
+   { TYP_INT,  "PSXRR_PRIO_MAX",        SYI$_PSXRR_PRIO_MAX             },
+   { TYP_INT,  "PSXRR_PRIO_MIN",        SYI$_PSXRR_PRIO_MIN             },
+   { TYP_INT,  "PTES_PER_PAGE",         SYI$_PTES_PER_PAGE              },
+   { TYP_UI64, "PT_BASE",               SYI$_PT_BASE                    },
+   { TYP_INT,  "QUANTUM",               SYI$_QUANTUM                    },
+ /* TODO: RAD_CPUS, RAD_MEMSIZE, RAD_MAX_RAD, RAD_SHMEMSIZE handling */
+   { TYP_INT,  "REAL_CPUTYPE",          SYI$_REAL_CPUTYPE               },
+   { TYP_LSTR, "SCSNODE",               SYI$_SCSNODE                    },
    { TYP_BOOL, "SCS_EXISTS",            SYI$_SCS_EXISTS                 },
+   { TYP_LSTR, "SERIAL_NUMBER",         SYI$_SERIAL_NUMBER              },
+   { TYP_UI64, "SHARED_VA_PTES",        SYI$_SHARED_VA_PTES             },
    { TYP_INT,  "SID",                   SYI$_SID                        },
    { TYP_INT,  "SWAPFILE_FREE",         SYI$_SWAPFILE_FREE              },
    { TYP_INT,  "SWAPFILE_PAGE",         SYI$_SWAPFILE_PAGE              },
+ /* TODO: SYSTEM_RIGHTS special handling */
+   { TYP_LSTR, "SYSTEM_UUID",           SYI$_SYSTEM_UUID                },
+   { TYP_INT,  "SYSTYPE",               SYI$_SYSTYPE                    },
+ /* TODO: how do we get TOTAL_PAGES? */
+   { TYP_INT,  "USED_GBLPAGCNT",        SYI$_USED_GBLPAGCNT             },
+   { TYP_INT,  "USED_GBLPAGMAX",        SYI$_USED_GBLPAGMAX             },
+ /* TODO: how do we get USED_PAGES? */
    { TYP_LSTR, "VERSION",               SYI$_VERSION                    },
+   { TYP_BOOL, "VIRTUAL_MACHINE",       SYI$_VIRTUAL_MACHINE            },
    { TYP_INT,  "XCPU",                  SYI$_XCPU                       },
    { TYP_INT,  "XSID",                  SYI$_XSID                       },
 } ;
 
 streng *vms_f_getsyi( tsd_t *TSD, cparamboxptr parms )
 {
-   char buffer[64] ;
-   int length=0, rc, item[6] ;
+   char __align( QUADWORD ) buffer[256] ;
+   int rc ;
+   unsigned short length = 0 ;
+   struct _ile3 item[2] ;
    struct dvi_items_type *ptr ;
    struct dsc$descriptor_s name, *namep=NULL ;
    struct dsc$descriptor_s dir = {
@@ -1578,10 +1860,12 @@ streng *vms_f_getsyi( tsd_t *TSD, cparamboxptr parms )
    if (!ptr)
       exiterror( ERR_INCORRECT_CALL , 0 ) ;
 
-   item[0] = 64 + (ptr->addr << 16) ;
-   item[1] = (int)buffer ;
-   item[2] = (int)&length ;
-   item[3] = item[4] = item[5] = 0 ;
+   item[0].ile3$w_length = 64 ;
+   item[0].ile3$w_code = ptr->addr ;
+   item[0].ile3$ps_bufaddr = buffer ;
+   item[0].ile3$ps_retlen_addr = &length ;
+
+   memset( &item[1], 0, sizeof(struct _ile3) ) ;
 
    if (parms->next && parms->next->value)
    {
@@ -1592,7 +1876,7 @@ streng *vms_f_getsyi( tsd_t *TSD, cparamboxptr parms )
       name.dsc$a_pointer = parms->value->value ;
    }
 
-   rc = sys$getsyiw( 0, NULL, namep, &item[0], NULL, NULL, 0 ) ;
+   rc = sys$getsyiw( EFN$C_ENF, NULL, namep, &item[0], NULL, NULL, 0 ) ;
 
    if (rc != SS$_NORMAL)
    {
@@ -1669,10 +1953,10 @@ streng *vms_f_mode( tsd_t *TSD, cparamboxptr parms )
 
 streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
 {
-   short length ;
+   unsigned short length ;
    int *pidp=NULL, rc, buffer ;
    unsigned int pid;
-   unsigned int items[6] ;
+   struct _ile3 items[2] ;
    const streng *Pid ;
    vmf_tsd_t *vt;
    char *str;
@@ -1681,12 +1965,11 @@ streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
    vt = TSD->vmf_tsd;
    checkparam( parms, 1, 1, "VMS_F_PID" ) ;
 
-   items[0] = ( JPI$_PID << 16 ) + 4 ;
-   items[1] = (unsigned int)&buffer ;
-   items[2] = (unsigned int)&length ;
-   items[3] = 0 ;
-   items[4] = 0 ;
-   items[5] = 0 ;
+   items[0].ile3$w_length = 4 ;
+   items[0].ile3$w_code = JPI$_PID ;
+   items[0].ile3$ps_bufaddr = &buffer ;
+   items[0].ile3$ps_retlen_addr = &length ;
+   memset( &items[1], 0, sizeof(struct _ile3) ) ;
 
    Pid = getvalue( TSD, parms->value, -1 ) ;
 
@@ -1700,7 +1983,7 @@ streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
       pid = (unsigned int)(-1) ;
 
    do {
-      rc = sys$getjpiw( 0, &pid, NULL, &items, NULL, NULL, 0 ) ;
+      rc = sys$getjpiw( EFN$C_ENF, &pid, NULL, &items, NULL, NULL, 0 ) ;
       }
    while (rc == SS$_NOPRIV) ;
 
@@ -1866,18 +2149,21 @@ streng *vms_f_setprv( tsd_t *TSD, cparamboxptr parms )
 
 streng *vms_f_user( tsd_t *TSD, cparamboxptr parms )
 {
-   int item[6], rc ;
-   short length ;
+   int rc ;
+   struct _ile3 item[2] ;
+   unsigned short length ;
    UICDEF uic ;
 
    checkparam( parms, 0, 0, "VMS_F_USER" ) ;
 
-   item[0] = 4 + ( JPI$_UIC << 16 ) ;
-   item[1] = (int)&uic ;
-   item[2] = (int)&length ;
-   item[3] = item[4] = item[5] = 0 ;
+   item[0].ile3$w_length = 4 ;
+   item[0].ile3$w_code = JPI$_UIC ;
+   item[0].ile3$ps_bufaddr = &uic ;
+   item[0].ile3$ps_retlen_addr = &length ;
 
-   rc = sys$getjpi( 0, NULL, NULL, item, NULL, NULL, 0 ) ;
+   memset( &item[1], 0, sizeof( struct _ile3 ) );
+
+   rc = sys$getjpiw( EFN$C_ENF, NULL, NULL, item, NULL, NULL, 0 ) ;
 
    if ((rc != SS$_NORMAL) || (length != 4))
    {
@@ -1947,13 +2233,13 @@ streng *vms_f_trnlnm( tsd_t *TSD, cparamboxptr parms )
    char buffer[256] ;
    $DESCRIPTOR( lognam, "" ) ;
    $DESCRIPTOR( tabnam, "LNM$DCL_LOGICAL" ) ;
-   short length ;
+   unsigned short length ;
    unsigned int attr=0, item=LNM$_STRING, rc, cnt=0 ;
    unsigned char mode ;
    int attribs, lattribs ;
    struct dvi_items_type *item_ptr ;
    cparamboxptr ptr ;
-   int items[20] ;
+   struct _ile3 items[7] ;
 
    checkparam( parms, 1, 6, "VMS_F_TRNLNM" ) ;
 
@@ -1975,9 +2261,10 @@ streng *vms_f_trnlnm( tsd_t *TSD, cparamboxptr parms )
       if (index<0 || index>127)
          exiterror( ERR_INCORRECT_CALL , 0 ) ;
 
-      items[cnt++] = 4 + ( LNM$_INDEX << 16 ) ;
-      items[cnt++] = (int)&index ;
-      items[cnt++] = 0 ;
+      items[cnt].ile3$w_length = 4 ;
+      items[cnt].ile3$w_code = LNM$_INDEX ;
+      items[cnt].ile3$ps_bufaddr = &index ;
+      items[cnt++].ile3$ps_retlen_addr = NULL ;
    }
 
    if (ptr) ptr=ptr->next ;
@@ -2023,13 +2310,12 @@ streng *vms_f_trnlnm( tsd_t *TSD, cparamboxptr parms )
    else
       item_ptr = 0 ;
 
-   items[cnt++] = 256 + ( item << 16 ) ;
-   items[cnt++] = (int)buffer ;
-   items[cnt++] = (int)&length ;
+   items[cnt].ile3$w_length = 256 ;
+   items[cnt].ile3$w_code = item ;
+   items[cnt].ile3$ps_bufaddr = buffer ;
+   items[cnt++].ile3$ps_retlen_addr = &length ;
 
-   items[cnt++] = 0 ;
-   items[cnt++] = 0 ;
-   items[cnt++] = 0 ;
+   memset(&items[cnt++], 0, sizeof(struct _ile3));
 
    rc = sys$trnlnm( &attr, &tabnam, &lognam, &mode, items ) ;
 
