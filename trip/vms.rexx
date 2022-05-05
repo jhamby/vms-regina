@@ -4,7 +4,7 @@ trace off
 /* signal here */
 /* ===== f$directory() =============================================== */
 call notify 'F$DIRECTORY'
-'dcl show default >LIFO'
+'show default >LIFO'
 parse pull . dev':'dir .
 if (dir \== f$directory()) then
    call complain "f$directory return incorrect answer"
@@ -18,12 +18,12 @@ do while users \= ''
    parse var users user users
    call tell user
 
-   'dcl write sys$output f$identifier( "'user'", "NAME_TO_NUMBER" ) >LIFO'
+   'write sys$output f$identifier( "'user'", "NAME_TO_NUMBER" ) >LIFO'
    parse pull number  .
    if number \== f$identifier( user, "NAME_TO_NUMBER") then 
       call complain 'built-in f$identifier dont convert to number correctly'
 
-   'dcl write sys$output f$identifier( 'number', "NUMBER_TO_NAME" ) >LIFO'
+   'write sys$output f$identifier( 'number', "NUMBER_TO_NAME" ) >LIFO'
    parse pull name .
    if name \= f$identifier( number, "NUMBER_TO_NAME" ) then 
       call complain 'built-in f$identifier dont convert to name correctly'
@@ -66,7 +66,7 @@ items = 'acppid acptype all alldevnam alloclass alt_host_avail',
  */
 
 devs = ''
-'dcl show device >LIFO'
+'show device >LIFO'
 do queued()
    parse pull dev ':' rest
    if rest \= '' then
@@ -80,10 +80,10 @@ do xx=1 for 3 while devs \= ''
    titems = items 
    do while titems \= ''
       parse var titems item titems
-      queue 'dcl write sys$output f$getdvi( "'dev'", "'item'")'
+      queue 'write sys$output f$getdvi( "'dev'", "'item'")'
       end
 
-   'LIFO> dcl set def nl: >FIFO'
+   'LIFO> set def nl: >FIFO'
 
    titems = items
    do queued()
@@ -136,10 +136,10 @@ do while procs\=''
    titems = items 
    do while titems \= ''
       parse var titems item titems
-      queue 'dcl write sys$output f$getjpi( "'proc'", "'item'")'
+      queue 'write sys$output f$getjpi( "'proc'", "'item'")'
       end
 
-   'LIFO> dcl set def nl: >FIFO'
+   'LIFO> set def nl: >FIFO'
 
    titems = items
    myproc = translate(f$getjpi('','PID'))
@@ -194,12 +194,12 @@ do until devs = ''
    do while titems \= ''
       parse var titems item titems
       if dev \= '' then
-         queue 'dcl write sys$output f$getsyi( "'item'", "'dev'")'
+         queue 'write sys$output f$getsyi( "'item'", "'dev'")'
       else
-         queue 'dcl write sys$output f$getsyi( "'item'" )'
+         queue 'write sys$output f$getsyi( "'item'" )'
       end
 
-   'LIFO> dcl set def nl: >FIFO'
+   'LIFO> set def nl: >FIFO'
 
    titems = items
    do queued()
@@ -345,7 +345,7 @@ funcs = 'job entry file form job queue'
 names = ''
 
 call notify '__display_queue'
-'dcl show queue >FIFO'
+'show queue >FIFO'
 do queued() 
    parse pull . keyw name',' . 
    if keyw \== 'queue' then
@@ -361,10 +361,10 @@ do while names \= ''
    titems = queue_items 
    do while titems \= ''
       parse var titems item titems
-      queue 'dcl write sys$output f$getqui( "DISPLAY_QUEUE", "'item'", "'name'")'
+      queue 'write sys$output f$getqui( "DISPLAY_QUEUE", "'item'", "'name'")'
       end
 
-   'LIFO> dcl set def nl: >FIFO'
+   'LIFO> set def nl: >FIFO'
 
    titems = queue_items
    do queued()
@@ -381,7 +381,7 @@ do while names \= ''
 
 /*====  form ===== */
 call notify '__display_form'
-'dcl show queue/form >FIFO'
+'show queue/form >FIFO'
 
 do queued() 
    parse pull name . '('keyw'=' . ')' number . 
@@ -398,10 +398,10 @@ do while names \= ''
    titems = form_items 
    do while titems \= ''
       parse var titems item titems
-      queue 'dcl write sys$output f$getqui( "DISPLAY_FORM", "'item'", "'name'")'
+      queue 'write sys$output f$getqui( "DISPLAY_FORM", "'item'", "'name'")'
       end
 
-   'LIFO> dcl set def nl: >FIFO'
+   'LIFO> set def nl: >FIFO'
 
    titems = form_items
    do queued()
@@ -424,7 +424,7 @@ do while names \= ''
 /* ===== entry ===== */
 
 call notify '__display_entry'
-'dcl show queue/all >FIFO'
+'show queue/all >FIFO'
 do queued() 
    parse pull name next entry .
    if datatype(entry)\=='NUM' then
@@ -441,11 +441,11 @@ do while names \= ''
    titems = entry_items 
    do while titems \= ''
       parse var titems item titems
-/*      queue 'dcl write sys$output f$getqui( "DISPLAY_ENTRY", "'item'", "'name'")' */
-      queue 'dcl write sys$output f$getqui( "DISPLAY_ENTRY", "'item'", "'name'")'
+/*      queue 'write sys$output f$getqui( "DISPLAY_ENTRY", "'item'", "'name'")' */
+      queue 'write sys$output f$getqui( "DISPLAY_ENTRY", "'item'", "'name'")'
       end
 
-   'LIFO> dcl set def nl: >FIFO'
+   'LIFO> set def nl: >FIFO'
 
    titems = entry_items
    do queued()
@@ -463,7 +463,7 @@ do while names \= ''
 /* ===== translate queue ===== */
 
 call notify '__translate_queue'
-'dcl show queue >FIFO'
+'show queue >FIFO'
 do queued() 
    parse pull line
    if (pos('>',line)=0) then iterate
@@ -479,10 +479,10 @@ do while names \= ''
    titems = trans_items 
    do while titems \= ''
       parse var titems item titems
-      queue 'dcl write sys$output f$getqui( "TRANSLATE_QUEUE", "'item'", "'name'")'
+      queue 'write sys$output f$getqui( "TRANSLATE_QUEUE", "'item'", "'name'")'
       end
 
-   'LIFO> dcl set def nl: >FIFO'
+   'LIFO> set def nl: >FIFO'
 
    titems = trans_items
    do queued()
@@ -500,7 +500,7 @@ do while names \= ''
 /* ===== display_characteristic ===== */
 char_items = 'characteristic_name characteristic_number'
 call notify '__display_characteristic'
-'dcl show queue/char >FIFO'
+'show queue/char >FIFO'
 do queued() 
    parse pull name num . 
    if datatype(num)\='NUM' then
@@ -516,10 +516,10 @@ do while names \= ''
    titems = char_items 
    do while titems \= ''
       parse var titems item titems
-      queue 'dcl write sys$output f$getqui( "DISPLAY_CHARACTERISTIC", "'item'", "'name'")'
+      queue 'write sys$output f$getqui( "DISPLAY_CHARACTERISTIC", "'item'", "'name'")'
       end
 
-   'LIFO> dcl set def nl: >FIFO'
+   'LIFO> set def nl: >FIFO'
 
    titems = char_items
    do queued()
@@ -562,7 +562,7 @@ do forever
 /* ===== f$user() ===== */
 
 call notify 'F$USER'
-'dcl write sys$output f$user() >LIFO'
+'write sys$output f$user() >LIFO'
 parse pull line
 if line\==f$user() then
    call complain 'Builtin f$user() does not seem to work'
@@ -579,10 +579,10 @@ string.5 = 'This is a short line of text' ; loc.5 = 'text'
 string.6 = 'This is a short line of text' ; loc.6 = 'foo'   
 
 do i=1 to 6
-   push 'dcl write sys$output f$locate("'string.i'", "'loc'")'
+   push 'write sys$output f$locate("'string.i'", "'loc'")'
    end
 
-'LIFO> dcl set def nl: >LIFO'
+'LIFO> set def nl: >LIFO'
 do i=1 to 6
    parse pull line
    call tell i
@@ -619,7 +619,7 @@ if f$integer('  0  ') \== '0' then
 /* ===== f$trnlnm() ===== */
 call notify 'F$TRNLNM'
 
-'dcl show logical/full >FIFO'
+'show logical/full >FIFO'
 
 
 tables = ''
@@ -861,7 +861,7 @@ i_version = 'foo'
 
 max_cnt = 400
 
-'dcl sh def >LIFO'
+'sh def >LIFO'
 parse pull line
 line = strip(translate( line, '<>', '[]' ))
 parse var line defdev':<'defdir'>'
@@ -883,7 +883,7 @@ do cnt=1 to max_cnt
       rexx = translate(f$parse(fil, def, rel,, 'syntax_only'), '<>', '[]') 
 
    if answer \== rexx then do
-      'dcl write sys$output f$parse("'fil'","'def'","'rel'",,"SYNTAX_ONLY") >LIFO'
+      'write sys$output f$parse("'fil'","'def'","'rel'",,"SYNTAX_ONLY") >LIFO'
       parse pull dcl
       call complain 'f$parse() doesn''t work, rexx='rexx', correct='answer,
                'fil='fil', def='def', rel='rel', dcl='dcl
@@ -1085,7 +1085,7 @@ after_parse:
 
 call notify 'F$SEARCH'
 
-'dcl dir/size/ver=1000 >LIFO'
+'dir/size/ver=1000 >LIFO'
 drop filnam. filtyp. filver. isfile.
 pull 
 pull
@@ -1158,7 +1158,7 @@ attribs = 'alq bdt bks bls cbt cdt ctg deq did dvi edt eof fid fsz grp',
           'mbm mrn mrs noa nok org pro pvn rat rck rdt rfm rvn uic wck'
 
 
-'dcl dir/size >LIFO'
+'dir/size >LIFO'
 pull
 pull
 do queued()-3
@@ -1178,9 +1178,9 @@ do while files\==''
    attrs = attribs
    do while attrs\==''
       parse var attrs attr attrs
-      push 'dcl write sys$output f$file_attrib("'file'", "'attr'")'
+      push 'write sys$output f$file_attrib("'file'", "'attr'")'
       end
-   'LIFO> dcl set prompt="" >LIFO'
+   'LIFO> set prompt="" >LIFO'
 
    attrs = attribs
    do while attrs\==''
@@ -1207,7 +1207,7 @@ dirs = 'SYS$SYSTEM SYS$LIBRARY'
 do while dirs\=''
    parse var dirs dir dirs
    call tell dir
-   'dcl dir/size' dir':*.exe >LIFO' 
+   'dir/size' dir':*.exe >LIFO' 
    inc = 1 
    do queued()
       parse pull line
@@ -1227,10 +1227,10 @@ do while dirs\=''
       end
 
    do i=1 to inc-1
-      push 'dcl write sys$output f$file_attributes("'dir':'files.i'","known")'
+      push 'write sys$output f$file_attributes("'dir':'files.i'","known")'
       end
 
-   'LIFO> dcl set def nl: >LIFO'
+   'LIFO> set def nl: >LIFO'
 
    do i=1 to inc-1
       parse pull line      
@@ -1650,7 +1650,7 @@ do until place==''
 
 exit 
 
-    'dcl sh dev sys$login: /full >LIFO'
+    'sh dev sys$login: /full >LIFO'
     disk_dev = ''
     do queued()
        parse pull line 
@@ -1669,7 +1669,7 @@ exit
     signal on syntax 
  signal restart
 
-    'dcl sh dev sys$login: /full >LIFO'
+    'sh dev sys$login: /full >LIFO'
     disk_dev = ''
     do queued()
        parse pull line 

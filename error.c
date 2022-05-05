@@ -800,10 +800,6 @@ void exiterror( int errorno, int suberrorno, ... )
 
 not_hookable:
 
-   /* VMS: for testing */
-   sleep(5);
-   abort();
-
    if ( TSD->systeminfo->script_exit )
    {
       TSD->instore_is_errorfree = 0;

@@ -72,6 +72,8 @@
 			will usually mess up ported programs.
 
     Updated for Regina port by Jake Hamby.
+    Uncommented line to set pipe buffer size to 8KB (not using GNV vm_pipe).
+    Enable DECC$EXIT_AFTER_FAILED_EXEC to fix _exit() after a failed exec.
 */
 
 #define __NEW_STARLET 1         /* enable VMS function prototypes */
@@ -383,6 +385,9 @@ static void set_coe ( void )
      * be efficient enough, and uses fewer resources than vms_vm_pipe.c.
      */
     set_feature_default("DECC$PIPE_BUFFER_SIZE"	, 8192);
+
+    /* Enable POSIX fix for vfork() child call to _exit after failed exec. */
+    set_feature_default("DECC$EXIT_AFTER_FAILED_EXEC", ENABLE);
 
     /* Rather than remove this completely, a comment is left here to warn
      * someone from putting this bug back in.

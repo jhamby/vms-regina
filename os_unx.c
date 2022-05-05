@@ -364,7 +364,7 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
    /* This version only tries "regina" if argv[0] isn't available. */
    static const char *interpreter = "regina" ;
    char **args ;
-   int i, rc, std_fds[3] ;
+   int i, rc, std_fds[3] = { -1, -1, -1 } ;
    int use_execvp = TRUE ;
    char *new_cmdline = NULL ;
 
@@ -372,6 +372,9 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
    {
       case SUBENVIR_PATH:
       case SUBENVIR_SYSTEM:
+      /* FIXME: for VMS, call lib$spawn first, to attempt to run as a DCL command.
+       * Then we can try it the POSIX way if DCL gives us a fatal error.
+       */
          args = makeargs(cmdline, '\\');
          break;
 
@@ -414,13 +417,7 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
          return -1;     /* return failure */
    }
 
-   /* Save copies of the standard file descriptors. */
-   for (i = 0; i < 3; i++)
-   {
-      std_fds[i] = dup(i);
-   }
-
-#define STD_REDIR(hdl,dest) if ((hdl != -1) && (hdl != dest)) dup2(hdl, dest)
+#define STD_REDIR(hdl,dest) if ((hdl != -1) && (hdl != dest)) { std_fds[dest] = dup(dest); dup2(hdl, dest); }
 
                                         /* Force the standard redirections:  */
    STD_REDIR(env->input.hdls[0],    0);
@@ -441,7 +438,7 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
       /* Reset the standard file descriptors and close the copies. */
       for (i = 0; i < 3; i++)
       {
-         if (std_fds[i] != -1 && std_fds[i] != i)
+         if (std_fds[i] != -1)
          {
             dup2(std_fds[i], i);
             close(std_fds[i]);
@@ -463,7 +460,7 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
    else
       execv(*args, args);
 
-   /* If we get to this point, the exec*() failed, so _exit() with a failure. */
+   /* If we get here, the exec*() failed, so return to parent with a failure. */
    _exit(EXIT_FAILURE);
 }
 
