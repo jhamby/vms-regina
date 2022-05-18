@@ -1290,11 +1290,13 @@ static fileboxptr getfileptr( tsd_t *TSD, const streng *name )
 }
 
 
+#if 0
 static void flush_input( cfileboxptr dummy )
 {
    dummy = dummy; /* keep compiler happy */
    return ;
 }
+#endif
 
 
 /*
@@ -4974,8 +4976,10 @@ streng *std_charin( tsd_t *TSD, cparamboxptr parms )
       result = readbytes( TSD, ptr, length, 0 ) ;
    else
    {
+#if 0
       if (!start)
          flush_input( ptr )  ;  /* Whatever happens ... */
+#endif
       result = nullstringptr() ;
    }
 
@@ -5216,8 +5220,10 @@ streng *std_linein( tsd_t *TSD, cparamboxptr parms )
       res = readoneline( TSD, ptr ) ;
    else
    {
+#if 0
       if (!line)
          flush_input( ptr ) ;
+#endif
       res = nullstringptr() ;
    }
 

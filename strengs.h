@@ -19,12 +19,18 @@
 #ifndef _STRINGS_ALREADY_DEFINED_
 #define _STRINGS_ALREADY_DEFINED_
 
+#include <stddef.h>
+
 typedef struct strengtype {
    int len, max ;
 #ifdef CHECK_MEMORY                     /* FGC: Test                         */
    char *value;
 #else
+#if (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)) || defined(VMS)
+   char value[] ;
+#else
    char value[4] ;
+#endif
 #endif
 } streng ;
 
@@ -67,7 +73,7 @@ typedef struct strengtype {
 #define Str_zero(a) ((Str_len(a)<Str_max(a)) && ((a)->value[(a)->len]==0x00))
 
 
-#define STRHEAD (1+(sizeof(int)<<1))
+#define STRHEAD offsetof(streng, value)
 
 
 typedef struct num_descr_type

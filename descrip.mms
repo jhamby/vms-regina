@@ -10,37 +10,37 @@
 .LAST
         @ write sys$output f$fao("!/==!AS !%D==", -
                 "Processing DESCRIP.MMS (Regina) concludes at", 0)
-!
+
 .INCLUDE regina.ver
-!
-.IFDEF DEBUGGING
-CC=CC/DECC/DEBUG/LIST
-CFLAGS=/NOOPTIMIZE
-LINK=LINK
-.ELSE
-CC=CC/DECC/NODEBUG
-CFLAGS=/OPT=(TUNE=EV67)/ARCH=EV56
-LINK=LINK/NODEBUG
-.ENDIF
-!
+
 ! FIXME: TRACEMEM define is currently required to work around a memory.c assertion failure.
-CFLAGS=$(CFLAGS)/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT/UNSIGNED_CHAR-
+! TODO: test performance of REGINA_BITS=64 (vs. 32) and /POINTER_SIZE=64 (vs. 32).
+COMMON_CFLAGS=/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT/UNSIGNED_CHAR/NAMES=(AS_IS,SHORT)-
         /INCLUDE_DIRECTORY=[]/NAMES=SHORTENED/OBJECT=$(MMS$TARGET_NAME).OBJ-
         /DEFINE=(VMS,_LARGEFILE,_USE_STD_STAT,SOCKADDR_LEN,_POSIX_EXIT,__UNIX_PUTC,-
                  TRACEMEM,-
                  REGINA_VERSION_DATE=""$(VER_DATE)"",REGINA_VERSION_MAJOR="""$(VER_MAJOR)""",-
                  REGINA_VERSION_MINOR="""$(VER_MINOR)""",REGINA_VERSION_RELEASE="""$(VER_RELEASE)""",-
                  REGINA_VERSION_SUPP=""$(VER_SUPP)"",REGINA_BITS=32)
-!
-! platform dependant, ...
-!
-.IFDEF ALPHA
+
+
+! compiler optimization and debugging flags
+
+.IFDEF DEBUGGING
+CC=CC/DEBUG/LIST
+CFLAGS=/NOOPTIMIZE$(COMMON_CFLAGS)
+LINK=LINK
+.ELSE
+CC=CC/NODEBUG
+.IFDEF MMSALPHA
+CFLAGS=/ARCH=HOST$(COMMON_CFLAGS)
+.ELSE
+CFLAGS=$(COMMON_CFLAGS)
 .ENDIF
-!
-.IFDEF VAX
+LINK=LINK/NODEBUG
 .ENDIF
 LINKFLAGS=/MAP
-!
+
 !OBJ1=builtin.obj,cmath.obj,cmsfuncs.obj,convert.obj,
 OBJ1=builtin.obj,client.obj,cmath.obj,cmsfuncs.obj,convert.obj,
 OBJ2=dbgfuncs.obj,debug.obj,envir.obj,error.obj,expr.obj,
@@ -64,20 +64,23 @@ LIBFLAGS=/CREATE regina.olb
 all : rexx.exe, regina.exe, execiser.exe
 !
 rexx.exe :      rexx.obj, -
-        $(OBJ1)$(OBJ2)$(OBJ3)$(OBJ4)$(OBJ5)$(OBJ6)$(OBJ7)$(OBJ8)$(OBJ9),vms_crtl_init.obj
+        $(OBJ1)$(OBJ2)$(OBJ3)$(OBJ4)$(OBJ5)$(OBJ6)$(OBJ7)$(OBJ8)$(OBJ9),-
+            vms_crtl_init.obj,vms_crtl_values.obj
         @ write sys$output "Linking $(MMS$TARGET) "
         $(LINK) $(LINKFLAGS) $(MMS$SOURCE_LIST)
         @ write sys$output "Done (linking)."
 !
-regina.exe :    regina.obj,regina.olb,vms_crtl_init.obj
+regina.exe :    regina.obj,regina.olb,vms_crtl_init.obj,vms_crtl_values.obj
         @ write sys$output "Linking $(MMS$TARGET) "
-        $(LINK) $(LINKFLAGS) regina.obj,vms_crtl_init.obj,regina.olb/LIBRARY
+        $(LINK) $(LINKFLAGS) regina.obj,vms_crtl_init.obj,vms_crtl_values.obj,-
+            regina.olb/LIBRARY
         @ write sys$output "Done (linking)."
 !
-execiser.exe :  execiser.obj,regina.olb,vms_crtl_init.obj
+execiser.exe :  execiser.obj,regina.olb,vms_crtl_init.obj,vms_crtl_values.obj
         @ write sys$output ""
         @ write sys$output "Linking $(MMS$TARGET) "
-        $(LINK) $(LINKFLAGS) execiser.obj,vms_crtl_init.obj,regina.olb/LIBRARY
+        $(LINK) $(LINKFLAGS) execiser.obj, vms_crtl_init.obj,-
+            vms_crtl_values.obj, regina.olb/LIBRARY
         @ write sys$output "Done (linking)."
 !
 regina.olb :    drexx.obj,rexxsaa.obj,client.obj -
@@ -87,8 +90,8 @@ regina.olb :    drexx.obj,rexxsaa.obj,client.obj -
         @ write sys$output "Done (library)."
 !
 clean :
-        @ delete/nolog  rexx.exe;*,regina.exe;*,execiser.exe;*
-        @ delete/nolog *.obj;*,*.map;*,*.olb;*,*.lis;*
+        @ delete/nolog  rexx.exe;*,regina.exe;*,execiser.exe;*,-
+                        *.obj;*,*.map;*,*.olb;*,*.lis;*
         @ write sys$output "Done (cleaning)."
 !
 alloca.obj : alloca.c
@@ -316,17 +319,22 @@ variable.obj :  variable.c, rexx.h
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)
         @ write sys$output "Done (compiling)."
-vms_crtl_init.obj :  vms_crtl_init.c
-        @ write sys$output ""
-        @ write sys$output "Compiling $(MMS$SOURCE) "
-        $(CC) $(CFLAGS) $(MMS$SOURCE)
-        @ write sys$output "Done (compiling)."
 vmscmd.obj :    vmscmd.c, rexx.h
         @ write sys$output ""
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)
         @ write sys$output "Done (compiling)."
 vmsfuncs.obj :  vmsfuncs.c, rexx.h
+        @ write sys$output ""
+        @ write sys$output "Compiling $(MMS$SOURCE) "
+        $(CC) $(CFLAGS) $(MMS$SOURCE)
+        @ write sys$output "Done (compiling)."
+vms_crtl_init.obj :  vms_crtl_init.c
+        @ write sys$output ""
+        @ write sys$output "Compiling $(MMS$SOURCE) "
+        $(CC) $(CFLAGS) $(MMS$SOURCE)
+        @ write sys$output "Done (compiling)."
+vms_crtl_values.obj :  vms_crtl_values.c
         @ write sys$output ""
         @ write sys$output "Compiling $(MMS$SOURCE) "
         $(CC) $(CFLAGS) $(MMS$SOURCE)

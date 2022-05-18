@@ -936,7 +936,7 @@ streng *arexx_compress( tsd_t *TSD, cparamboxptr parm1 )
 }
 
 
-static const streng T_str = { 1, 1, "T" };
+staticstreng( T_str, "T" );
 static const parambox T_parm = { NULL, 0, (streng *)&T_str };
 
 streng *arexx_trim( tsd_t *TSD, cparamboxptr parm1 )

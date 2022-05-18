@@ -438,6 +438,7 @@ int lineno_of( cnodeptr node )
       return 0 ;
 }
 
+#if 0
 static int charno_of( cnodeptr node )
 {
    if (node)
@@ -445,6 +446,7 @@ static int charno_of( cnodeptr node )
    else
       return 0 ;
 }
+#endif
 
 /*
  * Returns a 0-terminated string in a streng which will be formatted by a

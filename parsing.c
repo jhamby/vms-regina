@@ -90,7 +90,7 @@
  * file-scope variable, in order to optimize a bit. This way, we have
  * to neither allocate space for it, or deallocate it.
  */
-static const streng nullstring={ 0, 0, "" } ;
+staticstreng( nullstring, "" );
 
 /*
  * This is an implementation of the strstr() function, for the 'streng'
@@ -432,7 +432,7 @@ recurse:
     * that all the time.
     */
    length = source->len ;
-   pattern = &nullstring ;
+   pattern = nullstring ;
 
    /*
     * There are two main cases, either this is the last pattern, in
@@ -658,7 +658,7 @@ void parseargtree( tsd_t *TSD, cparamboxptr argbox, cnodeptr thisptr, int flags 
       if ((argbox)&&(argbox->value))
          source = argbox->value ;
       else
-         source = &nullstring ;
+         source = nullstring ;
 
       if (flags & PARSE_UPPER)
       {

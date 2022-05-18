@@ -21,7 +21,6 @@ typedef unsigned long  u_long;
 #   define HAVE_PWD_H
 #   define HAVE_SETJMP_H
 #   define HAVE_SIGNAL_H
-#   define HAVE_STDINT_H
 #   define HAVE_STDIO_H
 #   define HAVE_STDLIB_H
 #   define HAVE_STRING_H
@@ -64,13 +63,18 @@ typedef unsigned long  u_long;
 #       define HAVE_READLINK
 #       define HAVE_REALPATH    /* use the UNIX version of my_fullpath() */
 #   endif
+#   if __CRTL_VER >= 80500000   /* OpenVMS V8.4-2L1 with RTL V3.0 kit */
+#       define HAVE_STDINT_H
+#       define HAVE_SOCKLEN_T
+#       define HAVE_GETHOSTBYNAME_R_RETURNS_INT_6_PARAMS
+#       define HAVE_STRERROR_R
+#   endif
 #   define HAVE_DIV
 #   define HAVE_FORK_IS_VFORK   /* we have vfork(), but not real fork() */
 #   define HAVE_FTIME
 #   define HAVE_MEMCPY
 #   define HAVE_MEMMOVE
 #   define HAVE_RAISE
-#   define HAVE_SOCKLEN_T
 #   define HAVE_STRERROR
 #   define HAVE_VSPRINTF
 #   define TIME_WITH_SYS_TIME

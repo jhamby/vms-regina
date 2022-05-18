@@ -314,7 +314,7 @@ int vms_do_command( tsd_t *TSD, const streng *cmd, int io_flags, environment *en
                    ((in) ? &input : NULL),
                    ((out || fout) ? &output : NULL),
                    &CLI$M_NOWAIT, &prc_name, &vt->pid, &vt->comp_stat,
-                   &eflag, NULL, NULL, NULL, NULL ) ;
+                   &eflag ) ;
 
    if (rc != SS$_NORMAL) complain( TSD, rc ) ;
 
@@ -366,9 +366,9 @@ int vms_do_command( tsd_t *TSD, const streng *cmd, int io_flags, environment *en
     * on the next command (if it is started very soon)
     */
 
-   lib$getjpi( &JPI$_PRCLM, 0, 0, &max, 0, 0 ) ;
+   lib$getjpi( &JPI$_PRCLM, 0, 0, &max ) ;
    for (lim=max; lim>=max; )
-      lib$getjpi( &JPI$_PRCCNT, 0, 0, &lim, 0, 0 ) ;
+      lib$getjpi( &JPI$_PRCCNT, 0, 0, &lim ) ;
 
    complain( TSD, 0 ) ;
 

@@ -634,7 +634,7 @@ void srandom(unsigned seed)
 }
 #endif
 
-#ifdef STRERROR_R
+#ifdef HAVE_STRERROR_R
 /* see documentation of strerror and strerror_r. */
 char *strerror(int errnum)
 {
