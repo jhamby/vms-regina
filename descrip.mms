@@ -14,11 +14,10 @@
 .INCLUDE regina.ver
 
 ! FIXME: TRACEMEM define is currently required to work around a memory.c assertion failure.
-! TODO: test performance of REGINA_BITS=64 (vs. 32) and /POINTER_SIZE=64 (vs. 32).
-COMMON_CFLAGS=/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT/UNSIGNED_CHAR/NAMES=(AS_IS,SHORT)-
-        /INCLUDE_DIRECTORY=[]/NAMES=SHORTENED/OBJECT=$(MMS$TARGET_NAME).OBJ-
+! TODO: test performance of REGINA_BITS=64 (vs. 32) and other compilation options.
+COMMON_CFLAGS=/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT/UNSIGNED_CHAR-
+        /INCLUDE_DIRECTORY=[]/NAMES=(AS_IS,SHORT)/OBJECT=$(MMS$TARGET_NAME).OBJ-
         /DEFINE=(VMS,_LARGEFILE,_USE_STD_STAT,SOCKADDR_LEN,_POSIX_EXIT,__UNIX_PUTC,-
-                 TRACEMEM,-
                  REGINA_VERSION_DATE=""$(VER_DATE)"",REGINA_VERSION_MAJOR="""$(VER_MAJOR)""",-
                  REGINA_VERSION_MINOR="""$(VER_MINOR)""",REGINA_VERSION_RELEASE="""$(VER_RELEASE)""",-
                  REGINA_VERSION_SUPP=""$(VER_SUPP)"",REGINA_BITS=32)
@@ -32,11 +31,7 @@ CFLAGS=/NOOPTIMIZE$(COMMON_CFLAGS)
 LINK=LINK
 .ELSE
 CC=CC/NODEBUG
-.IFDEF MMSALPHA
-CFLAGS=/ARCH=HOST$(COMMON_CFLAGS)
-.ELSE
-CFLAGS=$(COMMON_CFLAGS)
-.ENDIF
+CFLAGS=/ARCH=HOST/OPT=(LEV=5)$(COMMON_CFLAGS)
 LINK=LINK/NODEBUG
 .ENDIF
 LINKFLAGS=/MAP
@@ -85,7 +80,7 @@ execiser.exe :  execiser.obj,regina.olb,vms_crtl_init.obj,vms_crtl_values.obj
 !
 regina.olb :    drexx.obj,rexxsaa.obj,client.obj -
         $(OBJ1)$(OBJ2)$(OBJ3)$(OBJ4)$(OBJ5)$(OBJ6)$(OBJ7)$(OBJ8)$(OBJ9)
-        @ write sys$output "Createing library $(MMS$TARGET) "
+        @ write sys$output "Creating library $(MMS$TARGET) "
         $(LIB) $(LIBFLAGS) $(MMS$SOURCE_LIST)
         @ write sys$output "Done (library)."
 !

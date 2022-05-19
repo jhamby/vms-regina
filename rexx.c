@@ -98,10 +98,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#ifndef HAVE_GETOPT_LONG
-# include "mygetopt.h"
-#endif
-
 #ifdef VMS
 # include <stat.h>
 #elif defined(MAC)
@@ -119,6 +115,11 @@
 
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
+#endif
+
+/* Keep this below #include <unistd.h> because it renames optarg. */
+#ifndef HAVE_GETOPT_LONG
+# include "mygetopt.h"
 #endif
 
 #ifdef __APPLE__

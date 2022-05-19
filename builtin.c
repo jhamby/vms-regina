@@ -497,11 +497,7 @@ streng *std_subword( tsd_t *TSD, cparamboxptr parms )
       eptr--;
    }
 
-   result = Str_makeTSD( eptr-cptr ) ;
-   memcpy( result->value, cptr, (eptr-cptr) ) ;
-   result->len = (eptr-cptr) ;
-
-   return result ;
+   return Str_ncreTSD( cptr, (eptr-cptr) ) ;
 }
 
 

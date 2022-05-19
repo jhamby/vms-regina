@@ -272,9 +272,6 @@
 # include <getopt.h>
 # define my_getopt_long getopt_long
 # define my_getopt_option option
-#else
-# define optarg __regina_optarg
-# define optind __regina_optind
 #endif
 
 /* For some mysterious reason, this macro is very difficult for some vendors */
