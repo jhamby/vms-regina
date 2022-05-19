@@ -2696,7 +2696,7 @@ streng *rex_lower( tsd_t *TSD, cparamboxptr parms )
    /*
     * Create our new starting; duplicate of input string
     */
-   ptr = Str_makeTSD( rlength );
+   ptr = Str_makeTSD( (length > rlength) ? length : rlength );
    memcpy( Str_val( ptr ), Str_val( str ), Str_len( str ) );
    /*
     * Determine where to start changing case...

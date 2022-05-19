@@ -13,8 +13,8 @@
 
 .INCLUDE regina.ver
 
-! FIXME: TRACEMEM define is currently required to work around a memory.c assertion failure.
-! TODO: test performance of REGINA_BITS=64 (vs. 32) and other compilation options.
+! TODO: test performance of REGINA_BITS=64 (vs. 32) and /PLUS_LIST_OPT.
+! We can also define "NDEBUG" for non-debug builds to remove the assertion checks.
 COMMON_CFLAGS=/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT/UNSIGNED_CHAR-
         /INCLUDE_DIRECTORY=[]/NAMES=(AS_IS,SHORT)/OBJECT=$(MMS$TARGET_NAME).OBJ-
         /DEFINE=(VMS,_LARGEFILE,_USE_STD_STAT,SOCKADDR_LEN,_POSIX_EXIT,__UNIX_PUTC,-

@@ -29,6 +29,7 @@
 #include "rexx.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <limits.h>
 #if !defined(__WINS__) && !defined(__EPOC32__)
 # include <float.h>
@@ -992,7 +993,7 @@ streng *arexx_upper( tsd_t *TSD, cparamboxptr parms )
    /*
     * Create our new starting; duplicate of input string
     */
-   ptr = Str_makeTSD( rlength );
+   ptr = Str_makeTSD( (length > rlength) ? length : rlength );
    memcpy( Str_val( ptr ), Str_val( str ), Str_len( str ) );
    /*
     * Determine where to start changing case...
