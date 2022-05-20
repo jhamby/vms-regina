@@ -11,7 +11,7 @@ void vms_set_crtl_values(void);
 #    pragma __required_pointer_size __save
 #    pragma __required_pointer_size 32
 #endif
-void (* const iniarray[])() = {vms_set_crtl_values, } ;	/* Set our contribution to the LIB$INITIALIZE array */
+void (* const iniarray[])(void) = {vms_set_crtl_values, } ;	/* Set our contribution to the LIB$INITIALIZE array */
 #if __INITIAL_POINTER_SIZE
 #    pragma __pointer_size __restore
 #else
@@ -19,5 +19,5 @@ void (* const iniarray[])() = {vms_set_crtl_values, } ;	/* Set our contribution 
 #endif
 #pragma extern_model restore
 
-int LIB$INITIALIZE();
-/* globaldef */ int (*lib_init_ref)() = LIB$INITIALIZE;
+int LIB$INITIALIZE(void);
+/* globaldef */ int (*lib_init_ref)(void) = LIB$INITIALIZE;

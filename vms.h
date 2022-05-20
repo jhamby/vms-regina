@@ -11,6 +11,7 @@ typedef unsigned short u_short;
 typedef unsigned long  u_long;
 
 # if defined(__DECC)
+#   define HAVE_NORETURN
 #   define HAVE_DLFCN_H
 #   define HAVE_FCNTL_H
 #   define HAVE_GRP_H
@@ -24,6 +25,7 @@ typedef unsigned long  u_long;
 #   define HAVE_STDIO_H
 #   define HAVE_STDLIB_H
 #   define HAVE_STRING_H
+#   define HAVE_TIME_H
 #   define HAVE_UNISTD_H
 #   define HAVE_ARPA_INET_H
 #   define HAVE_NETINET_IN_H
@@ -77,7 +79,6 @@ typedef unsigned long  u_long;
 #   define HAVE_RAISE
 #   define HAVE_STRERROR
 #   define HAVE_VSPRINTF
-#   define TIME_WITH_SYS_TIME
 #   define _XOPEN_SOURCE_EXTENDED
 # endif
 # ifndef _MAX_PATH

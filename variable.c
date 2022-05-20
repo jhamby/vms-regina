@@ -65,15 +65,16 @@
  */
 
 #include "rexx.h"
-#include <string.h>
-#include <stdarg.h>
 #include <assert.h>
-#include <stdio.h>   /* f*ck sun, they can't write a proper assert!!! */
+
+#ifdef DEBUG
+#include <stdarg.h>
 
 typedef struct {
    void **Elems;
    unsigned size;
 } Pool;
+#endif
 
 typedef struct { /* var_tsd: static variables of this module (thread-safe) */
 #ifdef TRACEMEM

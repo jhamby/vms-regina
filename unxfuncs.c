@@ -47,8 +47,6 @@
 
 #include "rexx.h"
 #include "utsname.h"
-#include <stdio.h>
-#include <string.h>
 
 #ifdef HAVE_ASSERT_H
 # include <assert.h>
@@ -61,7 +59,6 @@
 #endif
 
 #if !defined(MAC)
-# include <sys/types.h>
 # ifdef HAVE_UNISTD_H
 #  include <unistd.h>
 # endif

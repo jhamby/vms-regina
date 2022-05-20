@@ -19,10 +19,7 @@
 
 #include "rexx.h"
 #include "rxiface.h"
-#include <string.h>
-#include <stdio.h>
 #include <assert.h>
-#include <time.h>
 
 static streng *conflict_close( tsd_t *TSD, cparamboxptr parms );
 static streng *conflict_eof( tsd_t *TSD, cparamboxptr parms );
@@ -626,7 +623,9 @@ char getoptionchar( tsd_t *TSD, const streng *text, const char* bif, int argnum,
       strcat( tmp, regina_choices );
       exiterror( ERR_INCORRECT_CALL, 28, bif, argnum, tmp, tmpstr_of( TSD, text ) );
    }
+#if !defined(HAVE_NORETURN)
    return 0 ;
+#endif
 }
 
 

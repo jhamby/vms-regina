@@ -137,19 +137,9 @@
 #include "rxiface.h"
 #include "extstack.h"
 
-#include <limits.h>
-#include <stdio.h>
-#include <string.h>
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
 #ifdef HAVE_ASSERT_H
 # include <assert.h>
 #endif
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <setjmp.h>
 
 #if defined(__EPOC32__) || defined(__WINS__)
 # ifdef APIRET

@@ -91,8 +91,6 @@
  */
 
 #include "rexx.h"
-#include <stdio.h>
-#include <string.h>
 #include <assert.h>
 
 #ifdef HAVE_UNISTD_H
@@ -1626,7 +1624,9 @@ streng *set_queue( tsd_t *TSD, const streng *queue_name )
       exiterror( ERR_EXTERNAL_QUEUE, ERR_RXSTACK_INTERNAL, rc, "Setting queue from stack" );
    }
 #endif
+#if !defined(HAVE_NORETURN)
    return NULL;
+#endif
 }
 
 Queue *addr_reopen_queue( tsd_t *TSD, const streng *queuename, char code )

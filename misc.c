@@ -23,9 +23,7 @@
 #include <ctype.h>
 /* Do _not_ use stddef, anders! _not_ stddef! Remember that!!!
    (it breaks on suns running gcc without fixincludes */
-#include <stdio.h>
-#include <limits.h>
-#if defined(HAVE_ASSERT_H)
+#if defined(HAVE_ASSERT_H) && !defined(VMS)
 # include <assert.h>
 #endif
 

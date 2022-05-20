@@ -353,6 +353,10 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
 }
 #else /* def HAS_FORK_IS_VFORK */
 
+#if defined(VMS)
+#pragma assert func_attrs(_exit) noreturn
+#endif
+
 /*
  * fork_exec spawns a new process with the given commandline.
  * This version is for OpenVMS and other systems that only have vfork().

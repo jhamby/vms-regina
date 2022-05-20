@@ -32,9 +32,7 @@
 #endif
 
 #include "rexx.h"
-#include "rxiface.h"
 #include <assert.h>
-#include <string.h>
 
 /*
  * Starting after 3.3RC1 we process both the Rexx???Exe as the Rexx???Dll

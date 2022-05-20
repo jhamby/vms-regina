@@ -19,7 +19,6 @@
 
 #include "rexx.h"
 
-#include <string.h>
 #include <assert.h>
 
 #define TRACEVALUE(a,b) if (TSD->trace_stat=='I') tracevalue(TSD,a,b)
@@ -410,7 +409,9 @@ do_an_add:
 
       default:
          exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" )  ;
+#if !defined(HAVE_NORETURN)
          return NULL ;
+#endif
    }
 
    if (ntmp1)
@@ -811,7 +812,9 @@ streng *evaluate( tsd_t *TSD, nodeptr thisptr, streng **kill )
 
       default:
          exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" )  ;
+#if !defined(HAVE_NORETURN)
          return NULL ;
+#endif
    }
 #undef RETURN_NEW
 }
@@ -1269,7 +1272,9 @@ int isboolean( tsd_t *TSD, nodeptr thisptr, int suberror, const char *op )
 
       default:
          exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" )  ;
+#if !defined(HAVE_NORETURN)
          return 0 ;
+#endif
    }
 }
 

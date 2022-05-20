@@ -18,13 +18,8 @@
  */
 
 #include "rexx.h"
-#include <stdlib.h>
-#include <string.h>
 #include <math.h>
-#include <time.h>
-#include <stdio.h>
 #include <assert.h>
-#include <limits.h>
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -445,7 +440,7 @@ streng *std_subword( tsd_t *TSD, cparamboxptr parms )
 {
    int i=0, length=0, start=0 ;
    char *cptr=NULL, *eptr=NULL, *cend=NULL ;
-   streng *string=NULL, *result=NULL ;
+   streng *string=NULL ;
 
    checkparam(  parms,  2,  3 , "SUBWORD" ) ;
    string = parms->value ;
@@ -1627,8 +1622,10 @@ static char logic( char first, char second, int ltype )
       default :
          exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" )  ;
    }
+#if !defined(HAVE_NORETURN)
    /* not reached, next line only to satisfy compiler */
    return 'X' ;
+#endif
 }
 
 

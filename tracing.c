@@ -18,14 +18,12 @@
  */
 
 #include "rexx.h"
-#include <stdio.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
 #ifdef HAVE_ASSERT_H
 # include <assert.h>
 #endif
-#include <string.h>
 
 
 typedef struct { /* tra_tsd: static variables of this module (thread-safe) */

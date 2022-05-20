@@ -13,17 +13,6 @@ static void set(const char *name, int value) {
     }
 }
 
-/*
-** Sets default value for a feature
-*/
-static void set_default(const char *name, int value) {
-    errno = 0;
-    int index = decc$feature_get_index(name);
-    if (index > 0) {
-        decc$feature_set_value (index, 0, value);
-    }
-}
-
 void vms_set_crtl_values(void) {
     set ("DECC$UNIX_LEVEL", 100);
 

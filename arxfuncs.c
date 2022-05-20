@@ -27,10 +27,6 @@
 # define _GNU_SOURCE
 #endif
 #include "rexx.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <limits.h>
 #if !defined(__WINS__) && !defined(__EPOC32__)
 # include <float.h>
 #else

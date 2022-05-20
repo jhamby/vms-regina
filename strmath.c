@@ -18,11 +18,7 @@
  */
 
 #include "rexx.h"
-#include <stdio.h>
-#include <limits.h>
 #include <assert.h>
-#include <string.h>
-#include "regina64.h"
 
 
 #define log_xor(a,b)    (( (a)&&(!(b)) ) || ( (!(a)) && (b) ))
@@ -1468,7 +1464,7 @@ streng *str_norm( const tsd_t *TSD, num_descr *in, streng *trystr )
       }
       else
          trystr = Str_creTSD( "0" );
-#if NOT_YET_TESTED
+#ifdef NOT_YET_TESTED
       /* free memory to fix memory leak; Bug #455 */
       if (mt->norm_out)
       {
@@ -1552,7 +1548,9 @@ streng *str_norm( const tsd_t *TSD, num_descr *in, streng *trystr )
       if ( ( MAX_EXPONENT < exp ) || ( -MAX_EXPONENT > exp ) )
       {
          exiterror( ERR_ARITH_OVERFLOW, 0 )  ;
+#if !defined(HAVE_NORETURN)
          return NULL ;
+#endif
       }
    }
    else
@@ -1657,7 +1655,7 @@ streng *str_norm( const tsd_t *TSD, num_descr *in, streng *trystr )
       result = Str_makeTSD( size );
    result->len = size;
    memcpy( result->value, mt->norm_out, size );
-#if NOT_YET_TESTED
+#ifdef NOT_YET_TESTED
    /* free memory to fix memory leak; Bug #455 */
    if (mt->norm_out)
    {
@@ -2473,8 +2471,10 @@ int str_true( const tsd_t *TSD, const streng *input )
           exiterror( ERR_UNLOGICAL_VALUE, 0 )  ;
    }
 
+#if !defined(HAVE_NORETURN)
    /* Too keep the compiler happy */
    return 1 ;
+#endif
 }
 
 

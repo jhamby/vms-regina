@@ -482,7 +482,7 @@ typedef struct systeminfobox {
 } sysinfobox ;
 
 #ifndef DONT_TYPEDEF_PFN
-typedef unsigned long (*PFN)() ;
+typedef unsigned long (*PFN)(void) ;
 #endif
 
 

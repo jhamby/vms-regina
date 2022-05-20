@@ -26,8 +26,6 @@
 
 #include "rexx.h"
 #include <math.h>
-#include <stdio.h>
-#include <string.h>
 
 #ifdef SunKludges
 double strtod( const char *, char ** ) ;

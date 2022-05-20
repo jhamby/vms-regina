@@ -18,9 +18,6 @@
  */
 
 #include "rexx.h"
-#include <string.h>
-#include <stdio.h>
-#include <signal.h>
 
 /* at least dolphin does not have a properly ANSI C set of include files */
 #ifndef SIG_ERR
@@ -184,7 +181,9 @@ int identify_trap( int type )
       case X_S_LOSTDIGITS: return SIGNAL_LOSTDIGITS;
    }
    exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" )  ;
+#if !defined(HAVE_NORETURN)
    return SIGNAL_FATAL ;
+#endif
 }
 
 

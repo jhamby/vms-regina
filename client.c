@@ -66,19 +66,9 @@
 #endif
 
 #include "rxiface.h"
-#include <stdio.h>
-#include <string.h>
-
-#ifdef HAVE_ERRNO_H
-#include <errno.h>
-#endif
 
 #ifdef HAVE_ASSERT_H
 # include <assert.h>
-#endif
-
-#ifdef HAVE_STDARG_H
-#include <stdarg.h>
 #endif
 
 #ifndef min
@@ -463,7 +453,9 @@ int IfcExecScript( tsd_t * volatile TSD, int NameLen, const char *Name,
       else
       {
          exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" );
+#if !defined(HAVE_NORETURN)
          return 0;
+#endif
       }
    }
 
@@ -696,7 +688,9 @@ static int MapHook( const tsd_t *TSD, int RexxHook )
          exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" );
    }
 
+#if !defined(HAVE_NORETURN)
    return 0 ;
+#endif
 }
 
 
@@ -724,7 +718,9 @@ static int ReMapHook( const tsd_t *TSD, int NetHook )
          exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "" );
    }
 
+#if !defined(HAVE_NORETURN)
    return 0 ;
+#endif
 }
 
 
@@ -1304,7 +1300,9 @@ static streng *do_an_external( tsd_t *TSD,
             exiterror( RC, 0) ;
             break;
       }
+#if !defined(HAVE_NORETURN)
       retval = NULL ;
+#endif
    }
    else if ( RetLength == RX_NO_STRING )
    {

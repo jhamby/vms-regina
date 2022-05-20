@@ -18,11 +18,7 @@
  */
 
 #include "rexx.h"
-#include "rxiface.h"
 
-#include <stdio.h>
-#include <setjmp.h>
-#include <string.h>
 #include <assert.h>
 
 
@@ -423,7 +419,9 @@ internal_parser_type enter_macro( tsd_t *TSD, const streng *source,
    if (parsing.result != 0)
    {
       exiterror( ERR_YACC_SYNTAX, 1, parsing.tline ) ;
+#if !defined(HAVE_NORETURN)
       return(parsing);
+#endif
    }
    if (ept && extlength)
       *ept = TinTree( TSD, &parsing, extlength ) ;

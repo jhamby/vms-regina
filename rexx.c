@@ -94,9 +94,6 @@
 #endif
 
 #include "rexx.h"
-#include <string.h>
-#include <stdio.h>
-#include <assert.h>
 
 #ifdef VMS
 # include <stat.h>
@@ -267,6 +264,7 @@ static const char *GetArgv0(const char *argv0)
       }
    }
 #endif
+#if !defined(VMS)
    /* No specific code has found the right file name. Maybe, it's coded
     * in argv0. Check it, if it is an absolute path. Be absolutely sure
     * to detect it safely!
@@ -284,6 +282,7 @@ static const char *GetArgv0(const char *argv0)
       return(argv0); /* MS and OS/2 drive letter with path */
 
    return(NULL); /* not a proven argv0 argument */
+#endif
 }
 
 

@@ -30,6 +30,8 @@
 # include "configur.h"
 #endif
 
+#define HAVE_PROTO 1
+
 #if !__STDC__ && !defined(const) && IN_GCC
 #define const
 #endif
@@ -43,15 +45,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* This needs to come after some library #include
-   to get __GNU_LIBRARY__ defined.  */
-#if defined(__GNU_LIBRARY__) || defined(__cplusplus)
-/* Don't include stdlib.h for non-GNU C libraries because some of them
-   contain conflicting prototypes for getopt.  */
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
-#endif      /* GNU C library.  */
 
 /* If GETOPT_COMPAT is defined, `+' as well as `--' can introduce a
    long-named option.  Because this is not POSIX.2 compliant, it is

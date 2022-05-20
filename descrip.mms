@@ -15,12 +15,19 @@
 
 ! TODO: test performance of REGINA_BITS=64 (vs. 32) and /PLUS_LIST_OPT.
 ! We can also define "NDEBUG" for non-debug builds to remove the assertion checks.
-COMMON_CFLAGS=/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT/UNSIGNED_CHAR-
+! Note: REGINA_BITS=64 appears to be as fast as REGINA_BITS=32 on Alpha EV67.
+COMMON_CFLAGS=/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT/UNSIGNED_CHAR/PREFIX=ALL-
         /INCLUDE_DIRECTORY=[]/NAMES=(AS_IS,SHORT)/OBJECT=$(MMS$TARGET_NAME).OBJ-
         /DEFINE=(VMS,_LARGEFILE,_USE_STD_STAT,SOCKADDR_LEN,_POSIX_EXIT,__UNIX_PUTC,-
                  REGINA_VERSION_DATE=""$(VER_DATE)"",REGINA_VERSION_MAJOR="""$(VER_MAJOR)""",-
                  REGINA_VERSION_MINOR="""$(VER_MINOR)""",REGINA_VERSION_RELEASE="""$(VER_RELEASE)""",-
-                 REGINA_VERSION_SUPP=""$(VER_SUPP)"",REGINA_BITS=32)
+                 REGINA_VERSION_SUPP=""$(VER_SUPP)"",REGINA_BITS=64,NDEBUG)/STAND=C99
+
+! TODO: /PLUS_LIST DCL command is too long if we add all of these warnings.
+WARN_FLAGS=/WARN=(ENABLE=(CHECK, OBSOLESCENT, DEFUNCT, QUESTCODE),-
+                  DISABLE=(BOOLEXPRCONST, EXTENDTYPE, HEXOCTUNSIGN, IGNORECALLVAL,-
+                           INTCONCASTSGN, NAMESHORTENED, NESTINCL, NEWC99,-
+                           UNUSEDINCL, STRCTPADDING, STRCTPADEND, VALUEPRES))
 
 
 ! compiler optimization and debugging flags
@@ -31,20 +38,22 @@ CFLAGS=/NOOPTIMIZE$(COMMON_CFLAGS)
 LINK=LINK
 .ELSE
 CC=CC/NODEBUG
+.IFDEF MMSALPHA
+! Note: /OPT=(LEV=5)/PLUS_LIST causes an internal compiler error with VSI C V7.4-002.
+CFLAGS=/ARCH=EV56/OPT=(LEV=4,TUN=EV67)$(COMMON_CFLAGS)
+.ELSE
 CFLAGS=/ARCH=HOST/OPT=(LEV=5)$(COMMON_CFLAGS)
+.ENDIF
 LINK=LINK/NODEBUG
 .ENDIF
 LINKFLAGS=/MAP
 
-!OBJ1=builtin.obj,cmath.obj,cmsfuncs.obj,convert.obj,
 OBJ1=builtin.obj,client.obj,cmath.obj,cmsfuncs.obj,convert.obj,
 OBJ2=dbgfuncs.obj,debug.obj,envir.obj,error.obj,expr.obj,
-!OBJ3=extlib.obj,files.obj,funcs.obj,
 OBJ3=files.obj,funcs.obj,mygetopt.obj,os_unx.obj,
 OBJ4=mt_notmt.obj,rexxbif.obj,instore.obj,extstack.obj,os2funcs.obj,
 OBJ5=interp.obj,interprt.obj,lexsrc.obj,library.obj,macros.obj,memory.obj,
 OBJ6=misc.obj,options.obj,parsing.obj,rexxext.obj,rexxsaa.obj,shell.obj,
-!OBJ6=misc.obj,options.obj,parsing.obj,rexxext.obj,shell.obj,
 OBJ7=signals.obj,stack.obj,strengs.obj,strmath.obj,tracing.obj,unxfuncs.obj,
 .IFDEF DOESNT_HAVE_UNAME
 OBJ8=uname.obj,
@@ -53,18 +62,43 @@ OBJ8=
 .ENDIF
 OBJ9=vmsfuncs.obj,vmscmd.obj,variable.obj,wrappers.obj,yaccsrc.obj,arxfuncs.obj
 
+OBJS=$(OBJ1)$(OBJ2)$(OBJ3)$(OBJ4)$(OBJ5)$(OBJ6)$(OBJ7)$(OBJ8)$(OBJ9),-
+      vms_crtl_init.obj,vms_crtl_values.obj
+
+SRCS=$(SUBST .obj,.c,$(OBJS)),vms_crtl_init.c,vms_crtl_values.c
+
+! Is there a way to replace "," with "+" or vice versa?
+SRCSPLUS=builtin.c+client.c+cmath.c+cmsfuncs.c+convert.c+-
+   dbgfuncs.c+debug.c+envir.c+error.c+expr.c+-
+   files.c+funcs.c+mygetopt.c+os_unx.c+-
+   mt_notmt.c+rexxbif.c+instore.c+extstack.c+os2funcs.c+-
+   interp.c+interprt.c+lexsrc.c+library.c+macros.c+memory.c+-
+   misc.c+options.c+parsing.c+rexxext.c+rexxsaa.c+shell.c+-
+   signals.c+stack.c+strengs.c+strmath.c+tracing.c+unxfuncs.c+-
+   vmsfuncs.c+vmscmd.c+variable.c+wrappers.c+yaccsrc.c+arxfuncs.c+-
+   vms_crtl_init.c+vms_crtl_values.c
+
 LIB=LIBRARY
 LIBFLAGS=/CREATE regina.olb
-!
+
 all : rexx.exe, regina.exe, execiser.exe
-!
+
+.IFDEF BUILD_LTO
+rexx.exe :      rexx.c, $(SRCS)
+        @ write sys$output "Compiling and linking $(MMS$TARGET) "
+        $(CC) $(CFLAGS)/PLUS_LIST/WARN=DISABLE=DUPEXTERN rexx.c+$(SRCSPLUS)
+        $(LINK) $(LINKFLAGS) rexx.obj
+        @ write sys$output "Done (linking)."
+
+.ELSE
 rexx.exe :      rexx.obj, -
         $(OBJ1)$(OBJ2)$(OBJ3)$(OBJ4)$(OBJ5)$(OBJ6)$(OBJ7)$(OBJ8)$(OBJ9),-
             vms_crtl_init.obj,vms_crtl_values.obj
         @ write sys$output "Linking $(MMS$TARGET) "
         $(LINK) $(LINKFLAGS) $(MMS$SOURCE_LIST)
         @ write sys$output "Done (linking)."
-!
+.ENDIF
+
 regina.exe :    regina.obj,regina.olb,vms_crtl_init.obj,vms_crtl_values.obj
         @ write sys$output "Linking $(MMS$TARGET) "
         $(LINK) $(LINKFLAGS) regina.obj,vms_crtl_init.obj,vms_crtl_values.obj,-

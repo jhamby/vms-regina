@@ -20,7 +20,6 @@
 #include "rexx.h"
 
 #include <assert.h>
-#include <string.h>
 
 
 #define OPTION(opt) { #opt, EXT_##opt, NULL }

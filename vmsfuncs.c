@@ -19,10 +19,8 @@
 /* huups, have to add one to length in everyting given to Str_ncatstr */
 
 #include "rexx.h"
-#include "strengs.h"
 
 #include <assert.h>
-#include <stdio.h>
 #include <ctype.h>
 #include <strings.h>            /* for strncasecmp() */
 #include <unistd.h>
@@ -39,11 +37,9 @@
 #include <syidef.h>
 #include <uicdef.h>
 #include <libdtdef.h>
-#include <jbcmsgdef.h>
 #include <lnmdef.h>
 #include <psldef.h>
 #include <libdef.h>
-#include <libdtdef.h>
 #include <efndef.h>
 #include <iledef.h>
 #include <iosbdef.h>
@@ -171,7 +167,7 @@ static streng *num_to_name( const tsd_t *TSD, const int num )
    $DESCRIPTOR( gdescr, group ) ;
    streng *result ;
    unsigned short length, glength ;
-   int rc, xnum, context, theid ;
+   int rc, xnum ;
    int success = TRUE;
 
    if (num == 0)
@@ -267,7 +263,7 @@ static streng *get_uic( const tsd_t *TSD, const UICDEF *uic )
 
 struct dvi_items_type {
    const char *name ;   /* Parameter that identifies a particular item */
-   const int item_code ;      /* Item identifier to give to lib$getdvi */
+   const unsigned int item_code ;      /* Item identifier to give to lib$getdvi */
 } ;
 
 #define ARRAY_LEN(s) (sizeof(s) / sizeof(struct dvi_items_type))
@@ -570,8 +566,8 @@ static const struct dvi_items_type *item_info(
      const char *name, int name_len, const struct dvi_items_type *xlist,
      int list_len )
 {
-   int top, bot, mid, tmp ;
-   const char *poss, *cptr ;
+   int top, bot, mid ;
+   const char *poss ;
 
    top = list_len - 1 ;
    bot = 0 ;
@@ -1421,7 +1417,7 @@ streng *vms_f_getqui( tsd_t *TSD, cparamboxptr parms )
 {
    unsigned int rc, flags = 0, *flags_ptr ;
    int func_code, item_code, search_num, item_type_info = 0 ;
-   int func_index, flag_index ;
+   int func_index ;
    int *item_code_ptr, *search_num_ptr ;
    struct dsc$descriptor_s *search_name_ptr ;
    const struct dvi_items_type *tmp_ptr ;
@@ -1767,8 +1763,7 @@ streng *vms_f_getsyi( tsd_t *TSD, cparamboxptr parms )
 
 streng *vms_f_identifier( tsd_t *TSD, cparamboxptr parms )
 {
-   streng *in, *type, *result ;
-   int id=0 ;
+   streng *type, *result ;
 
    checkparam( parms, 2, 2, "VMS_F_IDENTIFIER" ) ;
 
@@ -1829,7 +1824,7 @@ streng *vms_f_mode( tsd_t *TSD, cparamboxptr parms )
 streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
 {
    unsigned short length ;
-   int *pidp=NULL, rc, buffer ;
+   int rc, buffer ;
    unsigned int pid;
    struct _ile3 items[2] ;
    const streng *Pid ;
@@ -1942,12 +1937,12 @@ streng *vms_f_privilege( tsd_t *TSD, cparamboxptr parms )
 {
    GENERIC_64 privbits[2], privs ;
    int rc ;
-   char *ptr, *eptr, *tptr ;
+   int item = JPI$_PROCPRIV ;
 
    checkparam( parms, 1, 1, "VMS_F_PRIVILEGE" ) ;
    extract_privs( privbits, parms->value ) ;
 
-   rc = lib$getjpi( &JPI$_PROCPRIV, NULL, NULL, &privs ) ;
+   rc = lib$getjpi( &item, NULL, NULL, &privs ) ;
    if (rc != SS$_NORMAL)
       vms_error( TSD, rc ) ;
 
@@ -1963,9 +1958,10 @@ streng *vms_f_process( tsd_t *TSD, cparamboxptr parms )
    int rc ;
    char buffer[64] ;
    $DESCRIPTOR( descr, buffer ) ;
+   int item = JPI$_PRCNAM;
 
    checkparam( parms, 0, 0, "VMS_F_PROCESS" ) ;
-   rc = lib$getjpi( &JPI$_PRCNAM, NULL, NULL, NULL, &descr,
+   rc = lib$getjpi( &item, NULL, NULL, NULL, &descr,
                     &(descr.dsc$w_length) ) ;
 
    if ( rc != SS$_NORMAL)
@@ -2086,7 +2082,7 @@ static const struct dvi_items_type trnlnm_modes[] = {
    { "USER",         PSL$C_USER      },
 } ;
 
-static enum trnlnm_type {
+enum trnlnm_type {
    TYP_INT,
    TYP_STR,
    TYP_FLAG,
@@ -2289,14 +2285,12 @@ static const struct dvi_items_type parse_fields[] = {
 
 streng *vms_f_parse( tsd_t *TSD, cparamboxptr parms )
 {
-   char relb[NAML$C_MAXRSS], expb[NAML$C_MAXRSS], relb2[NAML$C_MAXRSS], expb2[NAML$C_MAXRSS] ;
+   char expb[NAML$C_MAXRSS] ;
    unsigned int clen, rc, fields ;
    char *cptr ;
    const struct dvi_items_type *item ;
    cparamboxptr ptr ;
-   streng *result ;
    struct FAB fab          = cc$rms_fab ;
-   struct FAB relfab       = cc$rms_fab ;
    struct NAML naml        = cc$rms_naml ;
    struct NAML relnaml     = cc$rms_naml ;
 
@@ -2415,7 +2409,7 @@ streng *vms_f_parse( tsd_t *TSD, cparamboxptr parms )
 
 streng *vms_f_search( tsd_t *TSD, cparamboxptr parms )
 {
-   streng *name, *result ;
+   streng *name ;
    unsigned int context, rc, search ;
    struct fabptr *fptr ;
    vmf_tsd_t *vt;
@@ -2533,7 +2527,7 @@ static streng *date_time( const tsd_t *TSD, unsigned __int64 time )
 
 
 /* Indices into the array below. */
-static enum file_attr_item_index {
+enum file_attr_item_index {
    FIL_AI = 0,
    FIL_ALQ,
    FIL_BDT,
@@ -2588,7 +2582,7 @@ static enum file_attr_item_index {
 } ;
 
 /* type of extra XAB needed, and item code, for XABITM attributes */
-static enum file_attr_type {
+enum file_attr_type {
    FIL_ATTR_FAB,                 /* only FAB needed for result */
    FIL_ATTR_NAML,                /* NAML needed (we get this anyway) */
    FIL_ATTR_XABDAT,              /* date and time XAB needed */
@@ -2666,7 +2660,7 @@ static const struct dvi_items_type file_attribs[] = {
 streng *vms_f_file_attributes( tsd_t *TSD, cparamboxptr parms )
 {
    const struct dvi_items_type *item ;
-   unsigned int rc, result_word, index ;
+   unsigned int rc, result_word ;
    streng *res ;
    struct FAB fab = cc$rms_fab ;
    struct NAML naml = cc$rms_naml ;
@@ -3401,12 +3395,11 @@ static char *read_delta_time( char *ptr, char *end, unsigned short *times )
 streng *vms_f_cvtime( tsd_t *TSD, cparamboxptr parms )
 {
    streng *item=NULL, *input=NULL, *output=NULL, *result ;
-   int rc, res, cnt, abs=0 ;
+   int rc, cnt, abs=0 ;
    unsigned short times[7] ;
    unsigned short timearray[7] ;
    GENERIC_64 btime ;
    char *cptr, *cend, *ctmp, *cptr2 ;
-   $DESCRIPTOR( timbuf, "" ) ;
    enum funcs func ;
    enum outs out ;
 

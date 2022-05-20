@@ -86,15 +86,9 @@
 
 #include "rexx.h"
 #include <errno.h>
-#include <stdio.h>
-#include <string.h>
 #ifdef HAVE_ASSERT_H
 # include <assert.h>
 #endif
-#ifdef HAVE_LIMITS_H
-# include <limits.h>
-#endif
-#include <time.h>
 #if defined(OS2)
 # include <sys/stat.h>
 # ifdef HAVE_UNISTD_H
@@ -493,8 +487,6 @@
    int fstat( int fd, struct stat *buf ) ;
    int stat( char *path, struct stat *buf ) ;
 #endif
-
-#include "regina64.h"
 
 #if defined(WIN32)
 /*

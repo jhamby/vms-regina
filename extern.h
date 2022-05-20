@@ -252,6 +252,10 @@
    int lineno_of( cnodeptr ) ;
    void clear_errortext_buffers( const tsd_t *TSD );
 
+#ifdef VMS
+#pragma assert func_attrs(__regina_exiterror) noreturn
+#endif
+
 
 /*
  * Routines in variable.c
@@ -354,6 +358,10 @@
    void jump_interpreter_exit( tsd_t *TSD, int processExitCode );
    void jump_script_exit( tsd_t *TSD, streng *result );
    int init_spec_vars( tsd_t *TSD ) ;
+
+#ifdef VMS
+#pragma assert func_attrs(__regina_jump_interpreter_exit) noreturn
+#endif
 
 
 /*
@@ -561,7 +569,7 @@ extern "C" {
  * Routines in rexxext.c
  */
    char *mygetenv( const tsd_t *TSD, const char *name, char *buf, int bufsize ) ;
-   void set_pause_at_exit( );
+   void set_pause_at_exit( void );
    streng *rex_userid( tsd_t *TSD, cparamboxptr parms ) ;
    streng *rex_getcaller( tsd_t *TSD, cparamboxptr parms ) ;
    streng *rex_getcallstack( tsd_t *TSD, cparamboxptr parms ) ;

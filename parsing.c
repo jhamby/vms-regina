@@ -66,10 +66,7 @@
  */
 
 #include "rexx.h"
-#include <string.h>
-#include <stdio.h>  /* Stupid SunOS acc uses stderr in assert(), yuk! */
 #include <assert.h>
-#include "strengs.h"
 
 /*
  * Using the 'tracestat' field of 'currlevel' in order to determine

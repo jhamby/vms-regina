@@ -29,7 +29,6 @@
 #endif
 
 #include "rexx.h"
-#include <stdio.h>
 # ifdef HAVE_UNISTD_H
 #  include <unistd.h>                                    /* MH 10-06-96 */
 # endif
