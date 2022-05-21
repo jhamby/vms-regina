@@ -296,7 +296,9 @@ static streng *pack_hex( tsd_t *TSD, const char *bif, const streng *string )
 invalid:
    Free_stringTSD( result );
    exiterror( ERR_INCORRECT_CALL, 25, bif, tmpstr_of( TSD, string ) );
+#if !defined(HAVE_NORETURN)
    return NULL; /* not reached */
+#endif
 }
 
 
@@ -692,7 +694,9 @@ streng *std_x2b( tsd_t *TSD, cparamboxptr parms )
 invalid:
    Free_stringTSD( result );
    exiterror( ERR_INCORRECT_CALL, 25, "X2B", tmpstr_of( TSD, parms->value ) );
+#if !defined(HAVE_NORETURN)
    return NULL; /* not reached */
+#endif
 }
 
 

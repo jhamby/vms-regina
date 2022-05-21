@@ -14,8 +14,8 @@
 .INCLUDE regina.ver
 
 ! TODO: test performance of REGINA_BITS=64 (vs. 32) and /PLUS_LIST_OPT.
-! We can also define "NDEBUG" for non-debug builds to remove the assertion checks.
 ! Note: REGINA_BITS=64 appears to be as fast as REGINA_BITS=32 on Alpha EV67.
+! We can define "NDEBUG" for non-debug builds to remove the assertion checks.
 COMMON_CFLAGS=/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT/UNSIGNED_CHAR/PREFIX=ALL-
         /INCLUDE_DIRECTORY=[]/NAMES=(AS_IS,SHORT)/OBJECT=$(MMS$TARGET_NAME).OBJ-
         /DEFINE=(VMS,_LARGEFILE,_USE_STD_STAT,SOCKADDR_LEN,_POSIX_EXIT,__UNIX_PUTC,-
@@ -23,12 +23,9 @@ COMMON_CFLAGS=/FLOAT=IEEE/IEEE=DENORM/MAIN=POSIX_EXIT/UNSIGNED_CHAR/PREFIX=ALL-
                  REGINA_VERSION_MINOR="""$(VER_MINOR)""",REGINA_VERSION_RELEASE="""$(VER_RELEASE)""",-
                  REGINA_VERSION_SUPP=""$(VER_SUPP)"",REGINA_BITS=64,NDEBUG)/STAND=C99
 
-! TODO: /PLUS_LIST DCL command is too long if we add all of these warnings.
-WARN_FLAGS=/WARN=(ENABLE=(CHECK, OBSOLESCENT, DEFUNCT, QUESTCODE),-
-                  DISABLE=(BOOLEXPRCONST, EXTENDTYPE, HEXOCTUNSIGN, IGNORECALLVAL,-
-                           INTCONCASTSGN, NAMESHORTENED, NESTINCL, NEWC99,-
-                           UNUSEDINCL, STRCTPADDING, STRCTPADEND, VALUEPRES))
-
+! Note: including these with /PLUS_LIST can make the command line too long for DCL.
+WARN_CFLAGS=/WARN=(ENABLE=(DEFUNCT, OBSOLESCENT, QUESTCODE, UNUSEDTOP),-
+                   DISABLE=(BOOLEXPRCONST, DUPEXTERN, INTCONCASTSGN, UNKNOWNMACRO))
 
 ! compiler optimization and debugging flags
 
@@ -39,11 +36,15 @@ LINK=LINK
 .ELSE
 CC=CC/NODEBUG
 .IFDEF MMSALPHA
-! Note: /OPT=(LEV=5)/PLUS_LIST causes an internal compiler error with VSI C V7.4-002.
-CFLAGS=/ARCH=EV56/OPT=(LEV=4,TUN=EV67)$(COMMON_CFLAGS)
+! Note: /OPT=(LEV=5)/PLUS_LIST causes VSI C V7.4-002 to run out of memory.
+ARCHFLAGS=/ARCH=EV56/OPT=(LEV=5,TUN=EV67)
+ARCHFLAGSPLUS=/ARCH=EV56/OPT=(LEV=4,TUN=EV67)
 .ELSE
-CFLAGS=/ARCH=HOST/OPT=(LEV=5)$(COMMON_CFLAGS)
+ARCHFLAGS=/ARCH=HOST/OPT=(LEV=5)
+ARCHFLAGSPLUS=/ARCH=HOST/OPT=(LEV=5)
 .ENDIF
+CFLAGS=$(ARCHFLAGS)$(COMMON_CFLAGS)$(WARN_CFLAGS)
+CFLAGSPLUS=$(ARCHFLAGSPLUS)$(COMMON_CFLAGS)/PLUS_LIST/WARN=DIS=DUPEXTERN
 LINK=LINK/NODEBUG
 .ENDIF
 LINKFLAGS=/MAP
@@ -86,7 +87,7 @@ all : rexx.exe, regina.exe, execiser.exe
 .IFDEF BUILD_LTO
 rexx.exe :      rexx.c, $(SRCS)
         @ write sys$output "Compiling and linking $(MMS$TARGET) "
-        $(CC) $(CFLAGS)/PLUS_LIST/WARN=DISABLE=DUPEXTERN rexx.c+$(SRCSPLUS)
+        $(CC) $(CFLAGSPLUS) rexx.c+$(SRCSPLUS)
         $(LINK) $(LINKFLAGS) rexx.obj
         @ write sys$output "Done (linking)."
 

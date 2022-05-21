@@ -35,10 +35,7 @@
 #endif
 
 #include "rexx.h"
-#include <stdio.h>
 
-#include <string.h>
-#include <signal.h>
 #include <errno.h>
 #ifdef HAVE_ASSERT_H
 # include <assert.h>
@@ -406,7 +403,7 @@ static int write_buffered(const tsd_t *TSD, int hdl, const void *buf,
       todo = size;
       if (todo > sizeof(st->IObuf) - st->IOBused)
          todo = sizeof(st->IObuf) - st->IOBused;
-      if (todo > 0)
+      if (todo != 0) /* todo is unsigned, so it won't be less than zero */
       {
          memcpy(st->IObuf + st->IOBused, buf, todo);
          st->IOBused += todo;
@@ -891,7 +888,9 @@ static int setup_io( tsd_t *TSD, int io_flags, environment *env )
       {
          cleanup( TSD, env );
          exiterror( ERR_SYSTEM_FAILURE, 920, "creating redirection", "for input", strerror(errno) );
+#if !defined(HAVE_NORETURN)
          return 0;
+#endif
       }
    }
    if ( env->output.type != STD_IO )
@@ -900,7 +899,9 @@ static int setup_io( tsd_t *TSD, int io_flags, environment *env )
       {
          cleanup( TSD, env );
          exiterror( ERR_SYSTEM_FAILURE, 920, "creating redirection", "for output", strerror(errno) );
+#if !defined(HAVE_NORETURN)
          return 0;
+#endif
       }
    }
    else
@@ -911,7 +912,9 @@ static int setup_io( tsd_t *TSD, int io_flags, environment *env )
       {
          cleanup( TSD, env );
          exiterror( ERR_SYSTEM_FAILURE, 920, "creating redirection", "for error", strerror(errno) );
+#if !defined(HAVE_NORETURN)
          return 0;
+#endif
       }
    }
    else
@@ -982,7 +985,9 @@ static streng *fetch_food( tsd_t *TSD, environment *env )
 
       default:
          exiterror( ERR_INTERPRETER_FAILURE, 1, __FILE__, __LINE__, "Illegal feeder in fetch_food()" )  ;
+#if !defined(HAVE_NORETURN)
          return( NULL ) ;
+#endif
          break ;
    }
 
@@ -1101,7 +1106,10 @@ static void drop_crop_line( tsd_t *TSD, environment *env, const char *data,
          break ;
    }
 
+#if !defined(HAVE_NORETURN)
+   /* This is never reached. */
    Free_stringTSD( string ) ;
+#endif
 }
 
 /* line_length tries to find ANY line terminator. This is either \r,

@@ -18,15 +18,11 @@
  */
 
 #include "rexx.h"
-#include <errno.h>
-#include <string.h>
-#include <stdio.h>
 #include <assert.h>
 #include <stdarg.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
-#include <sys/stat.h>
 #include "rexxmsg.h"
 
 /* MAX_ET_BUFFERS is the maximum number of strings required to be allocated when an error occurs */

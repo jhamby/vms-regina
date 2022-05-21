@@ -18,9 +18,11 @@
  */
 
 #include "rexx.h"
-#include <stdio.h>
-#include <string.h>
+
+#ifdef TRACEMEM
 #include <assert.h>
+#endif
+
 
 #ifdef REGINA_DEBUG_MEMORY
 streng *dbg_freelists( tsd_t *TSD, cparamboxptr dummy )

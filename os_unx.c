@@ -68,10 +68,6 @@
 # include <share.h>
 #endif
 
-#if defined(HAVE_TIME_H)
-# include <time.h>
-#endif
-
 #if defined(HAVE_ERRNO_H)
 # include <errno.h>
 #endif

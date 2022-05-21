@@ -18,7 +18,6 @@
  */
 
 #include "rexx.h"
-#include <stdio.h>
 
 static void set_line_nos( treenode *ptr, int lineno, int charno )
 {
@@ -68,7 +67,9 @@ streng *dointerpret( tsd_t *TSD, streng *string )
          errpos = ( errpos > 0 ) ? errpos - 1 : 0 ;
       }
       exiterror( ERR_YACC_SYNTAX, 1, parsing.tline + errpos ) ;
+#if !defined(HAVE_NORETURN)
       return NULL ;
+#endif
    }
 
    newtree = parsing.root ;

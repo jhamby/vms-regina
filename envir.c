@@ -18,7 +18,6 @@
  */
 
 #include "rexx.h"
-#include <string.h>
 
 /*
  * The following strings must match AddressWithType enums in regina_t.h

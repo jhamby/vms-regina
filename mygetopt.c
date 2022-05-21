@@ -45,8 +45,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <stdlib.h>
-
 /* If GETOPT_COMPAT is defined, `+' as well as `--' can introduce a
    long-named option.  Because this is not POSIX.2 compliant, it is
    being phased out.  */

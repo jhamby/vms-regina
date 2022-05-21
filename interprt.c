@@ -18,9 +18,6 @@
  */
 
 #include "rexx.h"
-#include <stdio.h>
-#include <string.h>
-#include <limits.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 # endif
@@ -317,7 +314,7 @@ static void stackpush(const tsd_t *TSD,const stackelem *sbox)
    if (sb->used)
       sb->elems[sb->used].prev = sb->elems + sb->used - 1;
    else if (sb->prev)
-      sb->elems[0].prev = sb->prev->elems + STACKELEMS - 1;
+      sb->elems[0].prev = sb->prev->elems + (STACKELEMS - 1);
    else
       sb->elems[0].prev = NULL;
    sb->used++;
@@ -399,7 +396,7 @@ static stackelem * stacktop(const tsd_t *TSD)
    if (sb->used)
       return(sb->elems + sb->used - 1);
    if (sb->prev)
-      return(sb->prev->elems + STACKELEMS - 1);
+      return(sb->prev->elems + (STACKELEMS - 1));
    return(NULL);
 }
 

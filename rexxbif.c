@@ -1,6 +1,5 @@
 
 #include <stdio.h>
-#include <limits.h>
 #include "rexxbif.h"
 
 #ifdef EXTERNAL_TO_REGINA

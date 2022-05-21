@@ -29,11 +29,12 @@
 #endif
 
 #include "rexx.h"
-# ifdef HAVE_UNISTD_H
-#  include <unistd.h>                                    /* MH 10-06-96 */
-# endif
-# ifdef HAVE_PWD_H
-#  include <pwd.h>                                      /* MH 10-06-96 */
+
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>                                    /* MH 10-06-96 */
+#endif
+#ifdef HAVE_PWD_H
+# include <pwd.h>                                      /* MH 10-06-96 */
 #endif
 
 #if defined(WIN32)
@@ -61,7 +62,7 @@ streng *rex_userid( tsd_t *TSD, cparamboxptr parms )
    DWORD bufsize=sizeof( buf );
 #endif
    checkparam(  parms,  0,  0 , "USERID" ) ;
-#if defined(VMS) || defined(MAC) || ( defined(__WATCOMC__) && !defined(__QNX__) ) || defined(_MSC_VER) || defined(_AMIGA) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(__EPOC32__) || defined(__LCC__)
+#if ( defined(VMS) && !defined(HAVE_GETPWUID) ) || defined(MAC) || ( defined(__WATCOMC__) && !defined(__QNX__) ) || defined(_MSC_VER) || defined(_AMIGA) || defined(__MINGW32__) || defined(__BORLANDC__) || defined(__EPOC32__) || defined(__LCC__)
 # if defined(WIN32) && !defined(WDOSX)
    if ( GetUserName( buf, &bufsize ) )
    {
