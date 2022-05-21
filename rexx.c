@@ -94,6 +94,9 @@
 #endif
 
 #include "rexx.h"
+#if !defined(RXLIB) && !defined(VMS)
+#include <assert.h>
+#endif
 
 #ifdef VMS
 # include <stat.h>
