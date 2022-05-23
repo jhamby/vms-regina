@@ -109,7 +109,7 @@ static const char *all_privs[] = {
 #define NUM_PRIVS ((sizeof(all_privs)/sizeof(char*)))
 
 
-static void vms_error( const tsd_t *TSD, const int err )
+void vms_error( const tsd_t *TSD, const int err )
 {
    unsigned short length ;
    unsigned int rc ;

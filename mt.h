@@ -14,7 +14,6 @@ typedef struct _tsd_t {
    void *                  itp_tsd ;           /* local variables of interprt.c */
    void *                  tra_tsd ;           /* local variables of tracing.c */
    void *                  err_tsd ;           /* local variables of error.c */
-   void *                  vms_tsd ;           /* local variables of vmscmd.c */
    void *                  bui_tsd ;           /* local variables of builtin.c */
    void *                  vmf_tsd ;           /* local variables of vmsfuncs.c */
    void *                  lib_tsd ;           /* local variables of library.c */

@@ -1030,8 +1030,6 @@ void mark_systeminfo( const tsd_t *TSD )
    markmemory( TSD->itp_tsd, TRC_SYSINFO );
    markmemory( TSD->tra_tsd, TRC_SYSINFO );
    markmemory( TSD->err_tsd, TRC_SYSINFO );
-   if (TSD->vms_tsd )
-      markmemory( TSD->vms_tsd, TRC_SYSINFO );
    markmemory( TSD->bui_tsd, TRC_SYSINFO );
    if (TSD->vmf_tsd )
       markmemory( TSD->vmf_tsd, TRC_SYSINFO );

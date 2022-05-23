@@ -22,13 +22,6 @@
 #include "rexx.h"
 #include "utsname.h"
 
-#include <stdlib.h>
-#include <string.h>
-
-#if defined(HAVE_STRING_H)
-# include <stdio.h>
-#endif
-
 #if defined(DOS)
 # ifdef _POSIX_SOURCE   /* emulation system? */
 #  undef _POSIX_SOURCE
@@ -42,14 +35,6 @@
 
 #if defined(HAVE_UNISTD_H)
 # include <unistd.h>
-#endif
-
-#if defined(HAVE_SYS_STAT_H)
-# include <sys/stat.h>
-#endif
-
-#if defined(HAVE_SYS_WAIT_H)
-# include <sys/wait.h>
 #endif
 
 #if defined(HAVE_FCNTL_H)
@@ -70,14 +55,6 @@
 
 #if defined(HAVE_ERRNO_H)
 # include <errno.h>
-#endif
-
-#if defined(HAVE_SIGNAL_H)
-# include <signal.h>
-#endif
-
-#if defined(HAVE_ASSERT_H)
-# include <assert.h>
 #endif
 
 #if defined(HAVE_SYS_UTSNAME_H)
@@ -116,6 +93,11 @@
 #if defined(HAVE_SYS_RESOURCE_H)
 # include <sys/resource.h>
 #endif
+
+#if defined(VMS)
+#pragma assert func_attrs(_exit) noreturn
+#endif
+
 
 static int Unx_setenv( const char *name, const char *value )
 {
@@ -349,10 +331,6 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
 }
 #else /* def HAS_FORK_IS_VFORK */
 
-#if defined(VMS)
-#pragma assert func_attrs(_exit) noreturn
-#endif
-
 /*
  * fork_exec spawns a new process with the given commandline.
  * This version is for OpenVMS and other systems that only have vfork().
@@ -370,11 +348,17 @@ int Unx_fork_exec(tsd_t *TSD, environment *env, const char *cmdline, int *rcode)
 
    switch ( env->subtype )
    {
-      case SUBENVIR_PATH:
       case SUBENVIR_SYSTEM:
-      /* FIXME: for VMS, call lib$spawn first, to attempt to run as a DCL command.
-       * Then we can try it the POSIX way if DCL gives us a fatal error.
-       */
+#if defined(VMS)
+         /* for VMS, call lib$spawn first, to try to run as a DCL command.
+          * If lib$spawn fails, we'll return here and try the POSIX way.
+          */
+         if ((rc = vms_do_command( TSD, cmdline, env )) != 0) {
+            return rc;
+         }
+#endif
+         /* fallthrough */
+      case SUBENVIR_PATH:
          args = makeargs(cmdline, '\\');
          break;
 
