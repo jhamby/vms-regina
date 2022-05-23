@@ -96,6 +96,7 @@
 
 #if defined(VMS)
 #pragma assert func_attrs(_exit) noreturn
+#include <stsdef.h>
 #endif
 
 
@@ -483,6 +484,19 @@ static int Unx_wait(int process)
          continue;
       break;
    }
+#if defined(VMS)
+   /* convert VMS status into UNIX return code. */
+   if ($VMS_STATUS_SUCCESS(status)) {
+      /* POSIX non-zero exit values are in message number, using C facility. */
+      if ($VMS_STATUS_FAC_NO(status) == 53) {  /* magic number for C facility */
+         return $VMS_STATUS_MSG_NO(status);
+      } else {
+         return 0;   /* generic success */
+      }
+   } else {
+      return 1;   /* generic failure */
+   }
+#else
    if (WIFEXITED(status))
    {
       retval = (int) WEXITSTATUS(status);
@@ -506,6 +520,7 @@ static int Unx_wait(int process)
          retval = -1;
    }
    return(retval);
+#endif
 }
 
 /* open_subprocess_connection acts like the unix-known function pipe and sets

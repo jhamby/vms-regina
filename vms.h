@@ -5,6 +5,9 @@
 /* Enable XPG4 and POSIX prototypes. */
 #define _XOPEN_SOURCE_EXTENDED
 
+/* Use VMS-style waitpid() for lib$spawn() exit status compatibility. */
+#define _VMS_WAIT
+
 /* Sets __CRTL_VER to __CRTL_VER_OVERRIDE, if we specified one. */
 #include <decc$types.h>
 
