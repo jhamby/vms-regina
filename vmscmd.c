@@ -21,14 +21,13 @@
 
 #include "rexx.h"
 
+#include <unistd.h>
 #include <unixio.h>
+#include <unixlib.h>
 #include <descrip.h>
 #include <clidef.h>
 #include <ssdef.h>
 #include <lib$routines.h>
-
-/* defined in vmsfuncs.c */
-void vms_error( const tsd_t *TSD, const int err ) ;
 
 /* init_vms initializes the module.
  * Currently, we have nothing to initialize.
@@ -37,6 +36,13 @@ void vms_error( const tsd_t *TSD, const int err ) ;
 int init_vms( tsd_t *TSD )
 {
    return(1);
+}
+
+/* AST callback to write an EOF to the pipe on subprocess completion. */
+static void close_pipe_ast( int fd )
+{
+   decc$write_eof_to_mbx( fd ) ;
+   close( fd ) ;
 }
 
 /* Helper for Unx_fork_exec() to run DCL commands on OpenVMS using
@@ -84,9 +90,19 @@ int vms_do_command( tsd_t *TSD, const char *cmdline, environment *env )
       output.dsc$b_class = DSC$K_CLASS_S ;
       output.dsc$a_pointer = output_name_buf ;
       output_ptr = &output ;
-   }
 
-   rc = lib$spawn( &name, input_ptr, output_ptr, &flags, NULL, &pid ) ;
+      /* we need to use an AST to write EOF to the pipe on completion. */
+      rc = lib$spawn( &name, input_ptr, output_ptr, &flags, NULL, &pid,
+                      NULL, NULL, close_pipe_ast, tmpfd ) ;
+
+      if (rc == SS$_NORMAL) {
+         /* prevent the write fd from being closed until the AST callback */
+         env->output.hdls[1] = -1 ;
+      }
+   } else {
+      /* we need fewer parameters when output isn't being redirected. */
+      rc = lib$spawn( &name, input_ptr, NULL, &flags, NULL, &pid ) ;
+   }
 
    if (rc != SS$_NORMAL) {
       vms_error( TSD, rc ) ;

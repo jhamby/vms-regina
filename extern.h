@@ -583,8 +583,7 @@ extern "C" {
  */
    int init_vms( tsd_t *TSD ) ;
    int vms_do_command( tsd_t *TSD, const char *cmdline, environment *env );
-   int vms_killproc( tsd_t *TSD ) ;
-   streng *vms_resolv_symbol( tsd_t *TSD, streng *name, streng *newstr, streng *pool ) ;
+   void vms_error( const tsd_t *TSD, const int err ) ;
 
 /*
  * Routines in builtin.c
