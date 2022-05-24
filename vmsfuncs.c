@@ -1829,7 +1829,6 @@ streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
    struct _ile3 items[2] ;
    const streng *Pid ;
    vmf_tsd_t *vt;
-   char *str;
    streng *val = NULL ;
 
    vt = TSD->vmf_tsd;
@@ -1841,14 +1840,11 @@ streng *vms_f_pid( tsd_t *TSD, cparamboxptr parms )
    items[0].ile3$ps_retlen_addr = &length ;
    memset( &items[1], 0, sizeof(struct _ile3) ) ;
 
-   /* TODO: verify that this param works the same as F$PID(context-symbol) */
    Pid = getvalue( TSD, parms->value, -1 ) ;
 
    if (Pid->len)
    {
-      str = str_of( TSD, val ) ;
-      sscanf( str, "%x", &pid ) ;
-      FreeTSD( str ) ;
+      pid = strtoul( Pid->value, NULL, 16 ) ;
    }
    else
       pid = (unsigned int)(-1) ;
