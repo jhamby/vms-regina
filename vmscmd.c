@@ -41,7 +41,6 @@ int init_vms( tsd_t *TSD )
 /* AST callback to write an EOF to the pipe on subprocess completion. */
 static void close_pipe_ast( int fd )
 {
-   decc$write_eof_to_mbx( fd ) ;
    close( fd ) ;
 }
 
